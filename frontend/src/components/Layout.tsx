@@ -13,6 +13,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -62,6 +63,7 @@ export const Layout: React.FC<LayoutProps> = ({
   setActiveTab,
   onComposeClick 
 }) => {
+  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -249,12 +251,20 @@ export const Layout: React.FC<LayoutProps> = ({
             {/* User Profile Info */}
             <div className="flex items-center gap-3">
               <div className="hidden sm:block text-right">
-                <p className="text-xs font-semibold text-gray-200">Alex Carter</p>
-                <p className="text-[10px] text-gray-500">alex@inboxos.dev</p>
+                <p className="text-xs font-semibold text-gray-200 truncate max-w-[120px]">
+                  {user?.email ? user.email.split('@')[0] : 'User'}
+                </p>
+                <p className="text-[10px] text-gray-500 truncate max-w-[120px]">
+                  {user?.email || 'offline'}
+                </p>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-md border border-white/10 cursor-pointer">
-                AC
-              </div>
+              <button 
+                onClick={logout}
+                title="Log Out"
+                className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 flex items-center justify-center text-xs font-bold text-white shadow-md border border-white/10 transition-all active:scale-95"
+              >
+                {user?.email ? user.email.substring(0, 2).toUpperCase() : 'OS'}
+              </button>
             </div>
 
           </div>
