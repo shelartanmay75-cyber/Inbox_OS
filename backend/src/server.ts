@@ -10,6 +10,7 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AuthService } from './services/auth.service';
 import { requireAuth, AuthenticatedRequest } from './middleware/auth.middleware';
+import { rateLimiter } from './middleware/rate-limiter.middleware';
 import { EventBus } from './services/event-bus.service';
 import { google } from 'googleapis';
 import crypto from 'crypto';
@@ -50,6 +51,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(cookieParser());
+app.use('/api', rateLimiter);
 
 /**
  * POST /api/auth/register
