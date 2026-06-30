@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { AuthService } from './services/auth.service';
 import { requireAuth, AuthenticatedRequest } from './middleware/auth.middleware';
 import { EventBus } from './services/event-bus.service';
+import { google } from 'googleapis';
+import crypto from 'crypto';
+
 
 const app = express();
 const prisma = new PrismaClient();
@@ -314,6 +317,94 @@ app.put('/api/users/me/settings', requireAuth, async (req: AuthenticatedRequest,
   } catch (error) {
     console.error('Update settings error:', error);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// OAuth2 & Encryption config
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GMAIL_CLIENT_ID,
+  process.env.GMAIL_CLIENT_SECRET,
+  process.env.GMAIL_REDIRECT_URI || 'http://localhost:8000/api/integrations/gmail/callback'
+);
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default_secret_key_32_chars_long!'; 
+const IV_LENGTH = 16;
+
+function encrypt(text: string) {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY.padEnd(32, '0').slice(0, 32)), iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
+
+/**
+ * GET /api/integrations/gmail/auth
+ * Generates the Google OAuth URL.
+ */
+app.get('/api/integrations/gmail/auth', requireAuth, (req: AuthenticatedRequest, res: Response) => {
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['https://mail.google.com/'],
+    prompt: 'consent',
+    state: req.user?.userId
+  });
+  return res.json({ url });
+});
+
+/**
+ * GET /api/integrations/gmail/callback
+ * Exchanges the auth code for tokens and saves them to Prisma securely.
+ */
+app.get('/api/integrations/gmail/callback', async (req: Request, res: Response) => {
+  const code = req.query.code as string;
+  const userId = req.query.state as string;
+  
+  if (!code || !userId) {
+    return res.status(400).json({ error: 'Missing code or state parameters' });
+  }
+
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    const profile = await gmail.users.getProfile({ userId: 'me' });
+    const emailAddress = profile.data.emailAddress;
+
+    if (!emailAddress) {
+       return res.status(400).json({ error: 'Could not fetch email address from Google' });
+    }
+
+    const encryptedTokens = encrypt(JSON.stringify(tokens));
+
+    // Save to Database
+    await prisma.emailAccount.upsert({
+      where: {
+         userId_provider_emailAddress: {
+             userId,
+             provider: 'gmail',
+             emailAddress
+         }
+      },
+      update: {
+         encryptedTokens,
+         syncState: 'connected',
+         lastSyncAt: new Date()
+      },
+      create: {
+         userId,
+         provider: 'gmail',
+         emailAddress,
+         encryptedTokens,
+         syncState: 'connected'
+      }
+    });
+
+    return res.status(200).json({ message: 'Gmail connected successfully', emailAddress });
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    return res.status(500).json({ error: 'OAuth integration failed' });
   }
 });
 
