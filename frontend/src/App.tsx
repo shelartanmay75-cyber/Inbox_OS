@@ -1,5 +1,9 @@
 import { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { LoginForm } from './components/LoginForm';
+import { RegisterForm } from './components/RegisterForm';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { 
   ShieldAlert, 
   CheckCircle2, 
@@ -37,16 +41,15 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, isPositiv
           {change}
         </span>
       </div>
-      {/* Subtle bottom glowing line */}
       <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
     </div>
   );
 };
 
-export default function App() {
+// Extracted Dashboard Component to protect via ProtectedRoute
+const DashboardContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('inbox');
 
-  // Hardcoded dashboard metrics for premium dashboard visual
   const metrics = [
     { title: 'Total Ingested', value: '1,284', change: '+12%', isPositive: true, icon: <Inbox size={18} /> },
     { title: 'Urgent Action Required', value: '4', change: '-25%', isPositive: true, icon: <ShieldAlert size={18} className="text-amber-400 animate-pulse" /> },
@@ -54,7 +57,6 @@ export default function App() {
     { title: 'Average Action Time', value: '1.2m', change: '-12%', isPositive: true, icon: <Clock size={18} /> },
   ];
 
-  // Hardcoded mock emails to show premium Inbox list representation
   const mockEmails = [
     {
       id: '1',
@@ -113,12 +115,10 @@ export default function App() {
       onComposeClick={handleComposeAction}
     >
       <div className="space-y-8 animate-fadeIn">
-        
-        {/* Welcome Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              Welcome Back, Alex <Sparkles size={16} className="text-indigo-400" />
+              Workspace Overview <Sparkles size={16} className="text-indigo-400" />
             </h2>
             <p className="text-xs text-gray-400">
               InboxOS has resolved **87** tasks today automatically. Your inbox is clean.
@@ -135,17 +135,13 @@ export default function App() {
           </div>
         </div>
 
-        {/* Analytics Summary Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {metrics.map((metric, idx) => (
             <MetricCard key={idx} {...metric} />
           ))}
         </div>
 
-        {/* Main Dashboard Division */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Active AI Actions Feed / Inbox Panel */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex justify-between items-center px-2">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -163,7 +159,6 @@ export default function App() {
                   key={email.id}
                   className="glass rounded-2xl p-4 border border-white/5 transition-all hover:border-white/10 hover:bg-white/5 cursor-pointer flex gap-4"
                 >
-                  {/* Category Glow Tag */}
                   <div className="w-1.5 rounded-full bg-indigo-500 shrink-0" style={{
                     backgroundColor: 
                       email.category === 'urgent' || email.priority > 90 ? '#f43f5e' :
@@ -190,7 +185,6 @@ export default function App() {
                     <h4 className="text-xs font-semibold text-gray-100 mb-1 truncate">{email.subject}</h4>
                     <p className="text-[11px] text-gray-400 leading-normal line-clamp-2">{email.summary}</p>
                     
-                    {/* Badge Tags */}
                     <div className="flex items-center gap-2 mt-3">
                       <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded bg-white/5 text-gray-400 border border-white/5">
                         {email.category}
@@ -207,7 +201,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Active Rules & AI System Health */}
           <div className="space-y-6">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2 px-2">
@@ -261,7 +254,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pipeline Heatmap Visual Mock */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2 px-2">
                 <TrendingUp size={16} className="text-indigo-400" />
@@ -285,12 +277,28 @@ export default function App() {
                 </div>
               </div>
             </div>
-
           </div>
-
         </div>
-
       </div>
     </Layout>
+  );
+};
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginForm />} />
+      <Route path="/register" element={<RegisterForm />} />
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
+            <DashboardContent />
+          </ProtectedRoute>
+        } 
+      />
+      {/* Fallback to dashboard */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
