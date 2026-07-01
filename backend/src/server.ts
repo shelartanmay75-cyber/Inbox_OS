@@ -20,6 +20,8 @@ import crypto from 'crypto';
 import { EmailSenderService } from './services/email-sender.service';
 import { encrypt } from './utils/crypto';
 import { registerWorkerHandlers } from './worker';
+import { Server as SocketIoServer } from 'socket.io';
+import { WebSocketService } from './services/websocket.service';
 
 // If Redis is not running and we fall back to local event emitter, register worker handlers inline.
 EventBus.onFallback(() => {
@@ -529,7 +531,6 @@ app.get('/api/integrations/gmail/callback', async (req: Request, res: Response) 
         });
       }
 
-      const { AuthService } = await import('./services/auth.service');
       const jwtToken = AuthService.generateToken(user.id, user.email);
       res.cookie('token', jwtToken, {
         httpOnly: true,
@@ -719,6 +720,277 @@ app.get('/api/emails', requireAuth, async (req: AuthenticatedRequest, res: Respo
 });
 
 /**
+ * GET /api/emails/:id
+ * Returns a single email with its thread list and action items.
+ */
+app.get('/api/emails/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const id = req.params.id as string;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return res.status(400).json({ error: 'Invalid email ID format' });
+    }
+
+    const email = await prisma.email.findUnique({
+      where: { id },
+      include: {
+        actionItems: true,
+        thread: {
+          include: {
+            emails: {
+              orderBy: {
+                createdAt: 'asc'
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!email || email.userId !== userId) {
+      return res.status(404).json({ error: 'Email not found' });
+    }
+
+    return res.json(email);
+  } catch (error) {
+    console.error('GET /api/emails/:id error:', error);
+    return res.status(500).json({ error: 'Failed to fetch email details' });
+  }
+});
+
+/**
+ * Rules Engine Validation Schemas
+ */
+const ruleConditionSchema = z.object({
+  field: z.enum(['from', 'to', 'subject', 'body', 'category', 'priority', 'hasAttachments', 'senderDomain']),
+  operator: z.enum(['equals', 'contains', 'startsWith', 'endsWith', 'regex', 'gt', 'lt', 'in']),
+  value: z.string()
+});
+
+const ruleActionSchema = z.object({
+  type: z.enum(['moveToFolder', 'applyLabel', 'markAsRead', 'markAsUrgent', 'forwardTo', 'webhook', 'sendTelegram', 'sendWhatsApp']),
+  config: z.record(z.string(), z.any())
+});
+
+const createRuleSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  priority: z.number().int().default(0),
+  conditions: z.array(ruleConditionSchema).min(1),
+  actions: z.array(ruleActionSchema).min(1)
+});
+
+/**
+ * GET /api/rules
+ * List all rules for authenticated user, ordered by priority
+ */
+app.get('/api/rules', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const rules = await prisma.rule.findMany({
+      where: { userId },
+      orderBy: { priority: 'desc' },
+      include: {
+        conditions: true,
+        actions: true
+      }
+    });
+
+    return res.json(rules);
+  } catch (error) {
+    console.error('GET /api/rules error:', error);
+    return res.status(500).json({ error: 'Failed to fetch rules' });
+  }
+});
+
+/**
+ * POST /api/rules
+ * Create a new rule with conditions and actions
+ */
+app.post('/api/rules', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const validation = createRuleSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid request payload',
+        details: validation.error.flatten()
+      });
+    }
+
+    const { name, description, priority, conditions, actions } = validation.data;
+
+    const newRule = await prisma.rule.create({
+      data: {
+        userId,
+        name,
+        description,
+        priority,
+        conditions: {
+          create: conditions
+        },
+        actions: {
+          create: actions as any
+        }
+      },
+      include: {
+        conditions: true,
+        actions: true
+      }
+    });
+
+    return res.status(201).json(newRule);
+  } catch (error) {
+    console.error('POST /api/rules error:', error);
+    return res.status(500).json({ error: 'Failed to create rule' });
+  }
+});
+
+/**
+ * GET /api/rules/:id
+ * Retrieve single rule details
+ */
+app.get('/api/rules/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const id = req.params.id as string;
+    const rule = await prisma.rule.findUnique({
+      where: { id },
+      include: {
+        conditions: true,
+        actions: true
+      }
+    });
+
+    if (!rule || rule.userId !== userId) {
+      return res.status(404).json({ error: 'Rule not found' });
+    }
+
+    return res.json(rule);
+  } catch (error) {
+    console.error('GET /api/rules/:id error:', error);
+    return res.status(500).json({ error: 'Failed to fetch rule' });
+  }
+});
+
+/**
+ * PUT /api/rules/:id
+ * Update rule by replacing conditions and actions
+ */
+app.put('/api/rules/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const id = req.params.id as string;
+    const existingRule = await prisma.rule.findUnique({ where: { id } });
+    if (!existingRule || existingRule.userId !== userId) {
+      return res.status(404).json({ error: 'Rule not found' });
+    }
+
+    const validation = createRuleSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid request payload',
+        details: validation.error.flatten()
+      });
+    }
+
+    const { name, description, priority, conditions, actions } = validation.data;
+
+    // Run delete-then-create inside a transaction
+    const updatedRule = await prisma.$transaction(async (tx) => {
+      await tx.ruleCondition.deleteMany({ where: { ruleId: id } });
+      await tx.ruleAction.deleteMany({ where: { ruleId: id } });
+
+      return tx.rule.update({
+        where: { id },
+        data: {
+          name,
+          description,
+          priority,
+          conditions: {
+            create: conditions
+          },
+          actions: {
+            create: actions as any
+          }
+        },
+        include: {
+          conditions: true,
+          actions: true
+        }
+      });
+    });
+
+    return res.json(updatedRule);
+  } catch (error) {
+    console.error('PUT /api/rules/:id error:', error);
+    return res.status(500).json({ error: 'Failed to update rule' });
+  }
+});
+
+/**
+ * DELETE /api/rules/:id
+ * Deletes a rule
+ */
+app.delete('/api/rules/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const id = req.params.id as string;
+    const rule = await prisma.rule.findUnique({ where: { id } });
+    if (!rule || rule.userId !== userId) {
+      return res.status(404).json({ error: 'Rule not found' });
+    }
+
+    await prisma.rule.delete({ where: { id } });
+
+    return res.json({ message: 'Rule deleted successfully' });
+  } catch (error) {
+    console.error('DELETE /api/rules/:id error:', error);
+    return res.status(500).json({ error: 'Failed to delete rule' });
+  }
+});
+
+/**
+ * POST /api/rules/:id/toggle
+ * Toggles isActive status
+ */
+app.post('/api/rules/:id/toggle', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const id = req.params.id as string;
+    const rule = await prisma.rule.findUnique({ where: { id } });
+    if (!rule || rule.userId !== userId) {
+      return res.status(404).json({ error: 'Rule not found' });
+    }
+
+    const updated = await prisma.rule.update({
+      where: { id },
+      data: { isActive: !rule.isActive }
+    });
+
+    return res.json({ message: 'Rule toggled successfully', isActive: updated.isActive });
+  } catch (error) {
+    console.error('POST /api/rules/:id/toggle error:', error);
+    return res.status(500).json({ error: 'Failed to toggle rule' });
+  }
+});
+
+/**
  * GET /api/auth/google
  * PUBLIC — Generates Google OAuth URL for sign-in/sign-up via Google.
  * No JWT required. The callback handles user creation automatically.
@@ -739,4 +1011,19 @@ const server = app.listen(PORT, () => {
   logger.info(`Auth service running on port ${PORT}`);
 });
 
-export { app, server, prisma };
+// Initialize Socket.io Server with client-credentials CORS configuration
+const io = new SocketIoServer(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true
+  }
+});
+WebSocketService.initialize(io);
+
+export { app, server, prisma, io };

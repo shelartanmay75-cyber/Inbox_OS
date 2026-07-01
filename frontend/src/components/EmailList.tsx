@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmailRow, type EmailData } from './EmailRow';
 import { EmailSkeletonList } from './EmailSkeleton';
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { EmailViewer } from './EmailViewer';
 import { EmptyState } from './EmptyState';
+import { useSocket } from '../context/SocketContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -204,6 +205,8 @@ export const EmailList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
+  const { socket } = useSocket();
+
   // TanStack Query to fetch list from API
   const { data, isLoading, isError, refetch, isFetching } = useQuery<EmailData[]>({
     queryKey: ['emails', categoryFilter, currentPage, pageSize],
@@ -238,6 +241,22 @@ export const EmailList: React.FC = () => {
     gcTime: 1000 * 60 * 10,
     staleTime: 1000 * 60 * 5,
   });
+
+  // Listen for real-time incoming emails and refetch from backend
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewEmail = (payload: any) => {
+      console.log('[WebSocket] Real-time email received:', payload);
+      refetch();
+    };
+
+    socket.on('email.received', handleNewEmail);
+
+    return () => {
+      socket.off('email.received', handleNewEmail);
+    };
+  }, [socket, refetch]);
 
   // Fallback to mock data if API fails
   const emailsList = data || FALLBACK_MOCK_EMAILS;

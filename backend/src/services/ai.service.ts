@@ -9,7 +9,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../../config/env/.env') });
 
 const prisma = new PrismaClient();
 
-export type EmailCategory = 'urgent' | 'newsletter' | 'personal' | 'work' | 'spam';
+export type EmailCategory = 'urgent' | 'finance' | 'job' | 'otp' | 'meeting' | 'newsletter' | 'academic' | 'personal' | 'work' | 'spam';
 
 export interface ClassificationResult {
   category: EmailCategory;
@@ -61,8 +61,13 @@ export class AIService {
 
     const systemPrompt = `You are an expert AI email classification assistant. Your task is to analyze the email's subject line and body text, and classify it into exactly one of the following categories:
 - urgent: Requires immediate attention, system alerts, outages, or critical action.
+- finance: Financial reports, bills, receipts, bank updates, invoices, or transactions.
+- job: Job applications, updates, recruiter messages, offers, or interviews.
+- otp: Authentication codes, verification pins, security alerts, or OTP tokens.
+- meeting: Calendar invites, scheduling requests, status syncs, or agenda updates.
 - newsletter: Weekly/daily digests, marketing updates, announcements, or blogs.
-- personal: Direct communication from friends, family, or professional contacts.
+- academic: University, school, homework, course, lectures, grades, or research.
+- personal: Direct communication from friends, family, or personal contacts.
 - work: Business operations, projects, corporate communications, or tasks.
 - spam: Junk, unsolicited marketing, phishing, or bulk commercial email.
 
@@ -92,7 +97,7 @@ Provide a confidence score between 0.0 and 1.0.`;
                 properties: {
                   category: {
                     type: 'string',
-                    enum: ['urgent', 'newsletter', 'personal', 'work', 'spam'],
+                    enum: ['urgent', 'finance', 'job', 'otp', 'meeting', 'newsletter', 'academic', 'personal', 'work', 'spam'],
                   },
                   confidence: {
                     type: 'number',
@@ -141,8 +146,13 @@ Provide a confidence score between 0.0 and 1.0.`;
 
     const systemInstruction = `You are an expert AI email classification assistant. Your task is to analyze the email's subject line and body text, and classify it into exactly one of the following categories:
 - urgent: Requires immediate attention, system alerts, outages, or critical action.
+- finance: Financial reports, bills, receipts, bank updates, invoices, or transactions.
+- job: Job applications, updates, recruiter messages, offers, or interviews.
+- otp: Authentication codes, verification pins, security alerts, or OTP tokens.
+- meeting: Calendar invites, scheduling requests, status syncs, or agenda updates.
 - newsletter: Weekly/daily digests, marketing updates, announcements, or blogs.
-- personal: Direct communication from friends, family, or professional contacts.
+- academic: University, school, homework, course, lectures, grades, or research.
+- personal: Direct communication from friends, family, or personal contacts.
 - work: Business operations, projects, corporate communications, or tasks.
 - spam: Junk, unsolicited marketing, phishing, or bulk commercial email.
 
@@ -167,7 +177,7 @@ Provide a confidence score between 0.0 and 1.0.`;
               properties: {
                 category: {
                   type: 'STRING',
-                  enum: ['urgent', 'newsletter', 'personal', 'work', 'spam'],
+                  enum: ['urgent', 'finance', 'job', 'otp', 'meeting', 'newsletter', 'academic', 'personal', 'work', 'spam'],
                 },
                 confidence: {
                   type: 'NUMBER',
