@@ -30,23 +30,21 @@ export const Layout: React.FC<LayoutProps> = ({
       </aside>
 
       {/* ── Mobile Sidebar Drawer ────────────────────────────────────────────────── */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          {/* Backdrop overlay */}
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
+      <div className={`fixed inset-0 z-50 flex md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        {/* Backdrop overlay */}
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+        
+        {/* Mobile drawer container */}
+        <aside className={`relative flex flex-col w-[260px] bg-bg-base border-r border-white/10 h-full p-4 z-50 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <SidebarNav 
+            isMobile 
+            onCloseMobileMenu={() => setIsMobileMenuOpen(false)} 
           />
-          
-          {/* Mobile drawer container */}
-          <aside className="relative flex flex-col w-[260px] bg-bg-base border-r border-white/10 h-full p-4 z-50">
-            <SidebarNav 
-              isMobile 
-              onCloseMobileMenu={() => setIsMobileMenuOpen(false)} 
-            />
-          </aside>
-        </div>
-      )}
+        </aside>
+      </div>
 
       {/* ── Main Content Area ────────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-w-0">
