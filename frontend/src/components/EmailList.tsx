@@ -271,16 +271,6 @@ export const EmailList: React.FC = () => {
     setSelectedEmailId(null);
   }, []);
 
-  // Intercept rendering if an email is selected
-  if (selectedEmailId) {
-    return (
-      <EmailViewer 
-        emailId={selectedEmailId} 
-        onBack={handleBackToList} 
-      />
-    );
-  }
-
   // Filter local data (Search & Tabs)
   const filteredEmails = useMemo(() => {
     return emailsList.filter(email => {
@@ -324,6 +314,16 @@ export const EmailList: React.FC = () => {
     setCategoryFilter(catId);
     setCurrentPage(1); // Reset page on category filter change
   }, []);
+
+  // Intercept rendering if an email is selected
+  if (selectedEmailId) {
+    return (
+      <EmailViewer 
+        emailId={selectedEmailId} 
+        onBack={handleBackToList} 
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
