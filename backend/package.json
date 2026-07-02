@@ -15,7 +15,9 @@
     "test:worker": "ts-node src/test-worker.ts",
     "test:discord": "ts-node src/test-discord.ts",
     "test:slack": "ts-node src/test-slack.ts",
-    "test:gravatar": "ts-node src/test-gravatar.ts"
+    "test:gravatar": "ts-node src/test-gravatar.ts",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
@@ -38,6 +40,12 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.14.9",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.2.5",
     "prisma": "^5.16.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.2"

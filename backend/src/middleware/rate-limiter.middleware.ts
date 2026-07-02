@@ -14,7 +14,8 @@ const redisClient = new Redis(process.env.REDIS_URL || 'redis://redis:6379/0');
 export const rateLimiter = rateLimit({
   store: new RedisStore({
     // @ts-expect-error - compatibility mapping for ioredis and rate-limit-redis sendCommand structure
-    sendCommand: (...args: string[]) => redisClient.call(args[0], ...args.slice(1)),
+    sendCommand: (...args: string[]) =>
+      redisClient.call(args[0], ...args.slice(1)),
   }),
   validate: false, // Suppress validations for custom configuration
   windowMs: 15 * 60 * 1000, // 15-minute window
@@ -45,7 +46,11 @@ export const rateLimiter = rateLimit({
       }
     }
     // Fallback to client IP address for public/anonymous requests
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'anonymous';
+    const ip =
+      req.ip ||
+      req.headers['x-forwarded-for'] ||
+      req.socket.remoteAddress ||
+      'anonymous';
     const cleanIp = Array.isArray(ip) ? ip[0] : ip;
     return `rate-limit:public:${cleanIp}`;
   },
