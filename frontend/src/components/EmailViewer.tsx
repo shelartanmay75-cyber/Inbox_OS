@@ -12,7 +12,9 @@ import {
   ClipboardList,
   Flame,
   CheckCircle2,
-  Trash2
+  Trash2,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import { type EmailData } from './EmailRow';
 import { useCompose } from '../context/ComposeContext';
@@ -163,6 +165,41 @@ interface EmailViewerProps {
 export const EmailViewer: React.FC<EmailViewerProps> = ({ emailId, onBack }) => {
   const { openCompose } = useCompose();
   const [checkedActions, setCheckedActions] = useState<Record<number, boolean>>({});
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showCorrectionDropdown, setShowCorrectionDropdown] = useState(false);
+
+  const handleFeedback = async (
+    feedbackType: 'thumbs_up' | 'thumbs_down' | 'category_correction' | 'priority_adjustment',
+    correctedValue?: string
+  ) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emailId,
+          feedbackType,
+          correctedValue,
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to submit feedback');
+      }
+
+      setToastMessage("Thanks! Your feedback improves future classifications.");
+      setTimeout(() => {
+        setToastMessage(null);
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error submitting feedback:', error);
+      alert(error.message || 'Failed to submit feedback');
+    }
+  };
 
   // Fetch full email details via TanStack Query
   const { data, isLoading, isError } = useQuery<EmailData & { body_html?: string }>({
@@ -294,9 +331,74 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({ emailId, onBack }) => 
           
           {/* Ingest metadata header */}
           <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01]">
-            <h1 className="text-base font-bold text-white mb-3 tracking-tight">
-              {email.subject}
-            </h1>
+            
+            {/* Toast message rendering */}
+            {toastMessage && (
+              <div className="fixed top-6 right-6 z-50 glass bg-emerald-500/10 border-emerald-500/20 text-emerald-400 px-5 py-3 rounded-2xl flex items-center gap-3 shadow-xl animate-slideIn">
+                <CheckCircle2 size={18} />
+                <span className="text-xs font-semibold">{toastMessage}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              <h1 className="text-base font-bold text-white tracking-tight">
+                {email.subject}
+              </h1>
+              {email.category && (
+                <div className="flex items-center gap-1.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shrink-0">
+                  <span>{email.category}</span>
+                  <div className="flex items-center gap-1.5 ml-2 border-l border-indigo-500/30 pl-2">
+                    <button
+                      onClick={() => handleFeedback('thumbs_up')}
+                      className="text-gray-400 hover:text-emerald-400 transition-colors p-0.5 rounded hover:bg-emerald-500/10"
+                      title="Correct classification"
+                    >
+                      <ThumbsUp size={12} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleFeedback('thumbs_down');
+                        setShowCorrectionDropdown(true);
+                      }}
+                      className="text-gray-400 hover:text-rose-400 transition-colors p-0.5 rounded hover:bg-rose-500/10"
+                      title="Incorrect classification"
+                    >
+                      <ThumbsDown size={12} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {showCorrectionDropdown && (
+                <div className="flex items-center gap-2 bg-black/40 border border-white/10 px-2 py-1 rounded-xl text-xs shrink-0 animate-scaleUp">
+                  <span className="text-gray-400 text-[10px]">Should be:</span>
+                  <select
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) {
+                        handleFeedback('category_correction', val);
+                        setShowCorrectionDropdown(false);
+                      }
+                    }}
+                    className="bg-zinc-800 text-white text-[10px] rounded px-1.5 py-0.5 border border-zinc-700 outline-none cursor-pointer"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Select...</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="newsletter">Newsletter</option>
+                    <option value="personal">Personal</option>
+                    <option value="work">Work</option>
+                    <option value="spam">Spam</option>
+                  </select>
+                  <button
+                    onClick={() => setShowCorrectionDropdown(false)}
+                    className="text-gray-400 hover:text-white text-[10px] px-1 font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
             
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div className="flex items-center gap-3">
