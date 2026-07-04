@@ -113,6 +113,16 @@ model ActionItem {
   email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
 }
 
+model UserFeedback {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailId        String
+  email          Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  feedbackType   String
+  originalValue  String
+  correctedValue String?
+  createdAt      DateTime @default(now())
 // ─── Reminder System ──────────────────────────────────────────────────────────
 
 model Reminder {
