@@ -31,6 +31,11 @@ import { TelegramBotService } from './services/telegram-bot.service';
 import { LinkAttachmentExtractorService } from './services/parser/link-attachment-extractor.service';
 import { TelegramNotificationService } from './services/telegram-notification.service';
 import { ReminderSchedulerService } from './services/actions/reminder-scheduler.service';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { CalendarExtractorService } from './services/actions/calendar-extractor.service';
+import { CalendarCreatorService } from './services/actions/calendar-creator.service';
+import { calendarEventsQueue } from './jobs/calendar-events.job';
 
 const app = express();
 
