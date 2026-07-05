@@ -54,8 +54,8 @@ export class CalendarCreatorService {
       const oauth2Client = new google.auth.OAuth2(
         process.env.GMAIL_CLIENT_ID,
         process.env.GMAIL_CLIENT_SECRET,
-        process.env.GMAIL_REDIRECT_URI ||
-          'http://localhost:8000/api/integrations/gmail/callback'
+        process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
+          'http://localhost:8000/api/integrations/google_calendar/callback'
       );
       oauth2Client.setCredentials(tokens);
 
