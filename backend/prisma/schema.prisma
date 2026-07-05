@@ -36,8 +36,9 @@ model UserSettings {
   dndEnabled      Boolean @default(false)
   dndStart        String? // e.g. "22:00"
   dndEnd          String? // e.g. "08:00"
-  timezone        String  @default("UTC")
-  digestSchedule  String  @default("daily") // 'daily' | 'weekly' | 'disabled'
+  timezone            String  @default("UTC")
+  digestSchedule      String  @default("daily") // 'daily' | 'weekly' | 'disabled'
+  aiPreferenceProfile String?
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -67,17 +68,17 @@ model Email {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  threadId    String
-  thread      Thread                       @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  actionItems ActionItem[]
-  embedding   Unsupported("vector(1536)")?
-
+  threadId       String
+  thread         Thread                       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  actionItems    ActionItem[]
+  reminders      Reminder[]
+  embedding      Unsupported("vector(1536)")?
   analysis       EmailAnalysis?
   calendarEvents CalendarEvent[]
   digestId       String?
-  digest         Digest?         @relation(fields: [digestId], references: [id])
+  digest         Digest?                      @relation(fields: [digestId], references: [id])
   expenses       Expense[]
-  reminders      Reminder[]
+  userFeedbacks  UserFeedback[]
 
   @@index([userId])
   @@index([threadId])
@@ -113,16 +114,7 @@ model ActionItem {
   email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
 }
 
-model UserFeedback {
-  id             String   @id @default(uuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailId        String
-  email          Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
-  feedbackType   String
-  originalValue  String
-  correctedValue String?
-  createdAt      DateTime @default(now())
+// UserFeedback model merged with the definition at the end of the file
 // ─── Reminder System ──────────────────────────────────────────────────────────
 
 model Reminder {
@@ -327,16 +319,20 @@ model Digest {
 }
 
 model UserFeedback {
-  id           String   @id @default(uuid())
-  userId       String
-  emailId      String?
-  feedbackType String // 'thumbs_up' | 'thumbs_down'
-  feature      String? // 'classify' | 'summarize' | 'reply' | 'extract_actions'
-  comment      String?
-  createdAt    DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  emailId        String?
+  feedbackType   String // 'thumbs_up' | 'thumbs_down' | 'category_correction' | 'priority_adjustment' etc.
+  feature        String? // 'classify' | 'summarize' | 'reply' | 'extract_actions'
+  comment        String?
+  originalValue  String?
+  correctedValue String?
+  createdAt      DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([emailId])
   @@map("user_feedback")
 }

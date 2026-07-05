@@ -17,10 +17,8 @@ import {
 
 const GoogleIcon = () => (
   <svg
-    className="w-4.5 h-4.5"
+    className="w-[18px] h-[18px]"
     viewBox="0 0 24 24"
-    width="18"
-    height="18"
     xmlns="http://www.w3.org/2000/svg"
   >
     <path
@@ -51,11 +49,8 @@ export const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Local validation errors
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-
-  // Caps Lock detection state
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -65,8 +60,6 @@ export const LoginForm: React.FC = () => {
 
   const validate = () => {
     let isValid = true;
-
-    // Email check
     if (!email) {
       setEmailError('Email is required');
       isValid = false;
@@ -77,7 +70,6 @@ export const LoginForm: React.FC = () => {
       setEmailError(null);
     }
 
-    // Password check
     if (!password) {
       setPasswordError('Password is required');
       isValid = false;
@@ -94,9 +86,7 @@ export const LoginForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-
     if (!validate()) return;
-
     setIsLoading(true);
     try {
       await login(email, password);
@@ -108,38 +98,24 @@ export const LoginForm: React.FC = () => {
     }
   };
 
-  const handleUseDemoAccount = async () => {
-    clearError();
-    setIsLoading(true);
-    try {
-      await login('demo@inboxos.app', 'password123');
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Demo login error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <AuthLayout>
-      <div className="w-full space-y-6">
-        {/* Welcome Section */}
-        <div className="space-y-2 text-left">
-          <h3 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            Welcome Back <Sparkles size={18} className="text-[#6D5DF6]" />
+      <div className="w-full space-y-6 text-left">
+        {/* Welcome */}
+        <div className="space-y-1.5 pb-2">
+          <h3 className="text-[36px] font-bold text-[#1D1D1D] tracking-tight leading-none flex items-center gap-2.5">
+            Welcome Back <Sparkles size={24} className="text-[#5F6B38]" />
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-[16px] text-[#6B7280]">
             Sign in to your AI Inbox Operating System.
           </p>
         </div>
 
-        {/* Google Authentication */}
+        {/* Google Authentication (Redesigned White Button) */}
         <button
           type="button"
           onClick={async () => {
             if (!isFirebaseConfigured) {
-              // Mock Google SSO click for onboarding presentation
               setIsLoading(true);
               setTimeout(() => {
                 setIsLoading(false);
@@ -149,7 +125,6 @@ export const LoginForm: React.FC = () => {
               }, 1000);
               return;
             }
-
             setIsLoading(true);
             try {
               const result = await signInWithPopup(auth, googleProvider);
@@ -162,39 +137,39 @@ export const LoginForm: React.FC = () => {
               setIsLoading(false);
             }
           }}
-          className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 text-slate-200 text-xs font-bold transition-all hover:bg-white/[0.08] active:scale-[0.98]"
+          className="w-full h-[54px] flex items-center justify-center gap-3 bg-white border border-[#EAE5DA] rounded-[16px] text-[#1D1D1D] text-[15px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] hover:bg-[#FAF7F2]"
         >
           <GoogleIcon />
           <span>Continue with Google</span>
         </button>
 
         {/* Divider */}
-        <div className="relative flex py-2 items-center">
-          <div className="flex-grow border-t border-white/[0.04]"></div>
-          <span className="flex-shrink mx-4 text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-            or continue with email
+        <div className="flex items-center gap-4 py-2">
+          <div className="flex-grow border-t border-[#EAE5DA]" />
+          <span className="text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">
+            OR
           </span>
-          <div className="flex-grow border-t border-white/[0.04]"></div>
+          <div className="flex-grow border-t border-[#EAE5DA]" />
         </div>
 
-        {/* Authentication alerts */}
+        {/* Auth Error Alert */}
         {authError && (
-          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs text-left">
-            <AlertCircle size={14} className="shrink-0" />
-            <p className="leading-snug">{authError}</p>
+          <div className="flex items-center gap-3 p-4 bg-[#FFF0F0] border border-[#FCA5A5] rounded-[14px] text-[#EF4444] text-xs">
+            <AlertCircle size={16} className="shrink-0 text-[#EF4444]" />
+            <p className="leading-snug font-medium">{authError}</p>
           </div>
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email Input */}
-          <div className="space-y-1.5 text-left">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Email */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#374151] tracking-wide block">
               Email Address
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-3 text-slate-400">
-                <Mail size={15} />
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]">
+                <Mail size={16} strokeWidth={1.5} />
               </span>
               <input
                 type="email"
@@ -205,37 +180,37 @@ export const LoginForm: React.FC = () => {
                   if (emailError) setEmailError(null);
                 }}
                 disabled={isLoading}
-                className={`w-full bg-white/5 border rounded-xl pl-11 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 transition-all duration-200 focus:outline-none focus:ring-1 ${
+                className={`w-full h-[54px] pl-11 pr-4 text-[15px] bg-[#FCFCFE] border rounded-[14px] text-[#1D1D1D] placeholder-[#9CA3AF] outline-none transition-all duration-200 ${
                   emailError
-                    ? 'border-rose-500/50 focus:ring-rose-500/10'
-                    : 'border-white/5 hover:border-white/10 focus:border-[#6D5DF6]/40 focus:ring-[#6D5DF6]/10'
+                    ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-4 focus:ring-[#EF4444]/10'
+                    : 'border-[#EAE5DA] focus:border-[#5F6B38] focus:ring-4 focus:ring-[#5F6B38]/10'
                 }`}
               />
             </div>
             {emailError && (
-              <p className="text-[10px] text-rose-400 flex items-center gap-1.5 mt-1 font-medium pl-1">
-                <AlertCircle size={10} />
+              <p className="text-[11px] flex items-center gap-1.5 mt-1 font-semibold text-[#EF4444] pl-1">
+                <AlertCircle size={11} />
                 <span>{emailError}</span>
               </p>
             )}
           </div>
 
-          {/* Password Input */}
-          <div className="space-y-1.5 text-left">
+          {/* Password */}
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <label className="text-xs font-semibold text-[#374151] tracking-wide block">
                 Password
               </label>
               <a
                 href="#"
-                className="text-[9px] font-bold text-[#6D5DF6] hover:text-[#5B7CFF] transition-colors uppercase tracking-wider"
+                className="text-xs font-semibold text-[#5F6B38] hover:underline"
               >
-                Forgot?
+                Forgot Password?
               </a>
             </div>
             <div className="relative">
-              <span className="absolute left-4 top-3 text-slate-400">
-                <Lock size={15} />
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]">
+                <Lock size={16} strokeWidth={1.5} />
               </span>
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -247,76 +222,64 @@ export const LoginForm: React.FC = () => {
                   if (passwordError) setPasswordError(null);
                 }}
                 disabled={isLoading}
-                className={`w-full bg-white/5 border rounded-xl pl-11 pr-12 py-2.5 text-xs text-slate-100 placeholder-slate-500 transition-all duration-200 focus:outline-none focus:ring-1 ${
+                className={`w-full h-[54px] pl-11 pr-12 text-[15px] bg-[#FCFCFE] border rounded-[14px] text-[#1D1D1D] placeholder-[#9CA3AF] outline-none transition-all duration-200 ${
                   passwordError
-                    ? 'border-rose-500/50 focus:ring-rose-500/10'
-                    : 'border-white/5 hover:border-white/10 focus:border-[#6D5DF6]/40 focus:ring-[#6D5DF6]/10'
+                    ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-4 focus:ring-[#EF4444]/10'
+                    : 'border-[#EAE5DA] focus:border-[#5F6B38] focus:ring-4 focus:ring-[#5F6B38]/10'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
-                className="absolute right-4 top-3 text-slate-400 hover:text-slate-200 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1D1D1D] transition-colors"
               >
-                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
               </button>
             </div>
             {isCapsLockOn && (
-              <p className="text-[9px] text-amber-400 flex items-center gap-1.5 mt-1 font-bold pl-1 uppercase">
-                <AlertCircle size={9} />
-                <span>Warning: Caps Lock is On</span>
+              <p className="text-[10px] flex items-center gap-1.5 mt-1 font-semibold text-[#F59E0B] pl-1">
+                <AlertCircle size={10} />
+                <span>Caps Lock is On</span>
               </p>
             )}
             {passwordError && (
-              <p className="text-[10px] text-rose-400 flex items-center gap-1.5 mt-1 font-medium pl-1">
-                <AlertCircle size={10} />
+              <p className="text-[11px] flex items-center gap-1.5 mt-1 font-semibold text-[#EF4444] pl-1">
+                <AlertCircle size={11} />
                 <span>{passwordError}</span>
               </p>
             )}
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-gradient-to-r from-[#6D5DF6] to-[#5B7CFF] text-white font-bold text-xs transition-all hover:opacity-95 shadow-[0_0_20px_rgba(109,93,246,0.2)] hover:shadow-[0_0_25px_rgba(109,93,246,0.3)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-4 uppercase tracking-wider"
+            className="w-full h-[54px] flex items-center justify-center gap-2 bg-[#5F6B38] hover:bg-[#4F5A2F] text-white text-[15px] font-semibold rounded-[16px] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_25px_rgba(95,107,56,0.25)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-4"
           >
             {isLoading ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin text-white" />
                 <span>Authenticating...</span>
               </>
             ) : (
               <>
                 <span>Continue</span>
-                <ArrowRight size={13} />
+                <ArrowRight size={15} strokeWidth={2} />
               </>
-            )}
-          </button>
-
-          {/* Demo Login Button */}
-          <button
-            type="button"
-            onClick={handleUseDemoAccount}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2.5 uppercase tracking-wider"
-          >
-            {isLoading ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <span>Use Demo Account</span>
             )}
           </button>
         </form>
 
-        {/* Footer Toggle */}
-        <div className="text-center mt-6 text-[10px] text-slate-500 leading-normal font-semibold">
-          <p>Join thousands of users running email as an operating system.</p>
+        {/* Footer Links */}
+        <div className="text-center pt-5 border-t border-[#EAE5DA] mt-3">
+          <p className="text-xs text-[#6B7280]">
+            Join thousands of users running email as an operating system.
+          </p>
           <Link
             to="/register"
             onClick={clearError}
-            className="font-bold text-[#6D5DF6] hover:text-[#5B7CFF] transition-colors mt-1 block uppercase tracking-wider"
+            className="text-xs font-semibold text-[#5F6B38] hover:underline mt-2 block"
           >
             Create an Account
           </Link>

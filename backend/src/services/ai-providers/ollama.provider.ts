@@ -15,7 +15,7 @@ export class OllamaProvider {
    * Helper to make a post request to Ollama and accumulate stream.
    * Auto-pulls the model if it is missing (404 / not found errors).
    */
-  private static async generate(prompt: string): Promise<string> {
+  public static async generate(prompt: string): Promise<string> {
     const baseUrl = this.getBaseUrl();
     const model = this.getModel();
 
@@ -227,5 +227,60 @@ Summary:`;
 
     const rawResponse = await this.generate(prompt);
     return rawResponse.trim();
+  }
+
+  /**
+   * Generate vector embeddings for a given text using local Ollama model.
+   * Calls /api/embeddings.
+   */
+  public static async generateEmbedding(text: string): Promise<number[]> {
+    const baseUrl = this.getBaseUrl();
+    const model = this.getModel();
+
+    try {
+      const response = await axios.post(`${baseUrl}/api/embeddings`, {
+        model,
+        prompt: text,
+      });
+
+      const embedding = response.data.embedding;
+      if (!embedding || !Array.isArray(embedding)) {
+        throw new Error('[Ollama] Response did not contain a valid embedding array.');
+      }
+      return embedding;
+    } catch (error: any) {
+      console.error('[Ollama] Embedding generation failed:', error.message || error);
+      throw error;
+    }
+  }
+
+  /**
+   * Categorizes a link using local Ollama generation.
+   */
+  public static async categorizeLink(
+    href: string,
+    text: string
+  ): Promise<string> {
+    const prompt = `You are a link classification assistant. Categorize the given link (based on URL and anchor text) into exactly one of the following categories:
+- unsubscribe
+- confirm
+- download
+- meeting
+- payment
+- other
+
+You MUST respond in JSON format matching this schema:
+{
+  "category": "unsubscribe" | "confirm" | "download" | "meeting" | "payment" | "other"
+}
+
+URL: ${href}
+Anchor Text: ${text}
+
+Response JSON:`;
+
+    const rawResponse = await this.generate(prompt);
+    const parsed = this.extractJson(rawResponse);
+    return parsed.category || 'other';
   }
 }
