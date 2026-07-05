@@ -1354,113 +1354,381 @@ app.get(
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
+      const startDateStr = req.query.startDate as string;
+      const endDateStr = req.query.endDate as string;
+
       const now = new Date();
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const prev24h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
-      // 1. Total Ingested
-      const totalIngested = await prisma.email.count({
-        where: { userId },
-      });
-      const last24hIngested = await prisma.email.count({
-        where: { userId, createdAt: { gte: last24h } },
-      });
-      const prev24hIngested = await prisma.email.count({
-        where: { userId, createdAt: { gte: prev24h, lt: last24h } },
-      });
-      let ingestedChange = 0;
-      if (prev24hIngested > 0) {
-        ingestedChange = Math.round(
-          ((last24hIngested - prev24hIngested) / prev24hIngested) * 100
-        );
-      } else if (last24hIngested > 0) {
-        ingestedChange = 100;
+      // Default range for analytics elements (last 90 days if not provided)
+      const startDate = startDateStr ? new Date(startDateStr) : new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const endDate = endDateStr ? new Date(endDateStr) : now;
+
+      let totalIngestedVal: number;
+      let ingestedChangeStr: string;
+      let ingestedIsPositive: boolean;
+
+      let pendingActionsVal: number;
+      let pendingChangeStr: string;
+      let pendingIsPositive: boolean;
+
+      let resolutionRateVal: number;
+      let resolutionChangeStr: string;
+      let resolutionIsPositive: boolean;
+
+      if (startDateStr || endDateStr) {
+        // ── CALCULATE SCOPED RANGE STATS ──────────────────────────────────────────
+        // 1. Total Ingested
+        const count = await prisma.email.count({
+          where: { userId, createdAt: { gte: startDate, lte: endDate } },
+        });
+        const periodLength = endDate.getTime() - startDate.getTime();
+        const prevStartDate = new Date(startDate.getTime() - periodLength);
+        const prevCount = await prisma.email.count({
+          where: { userId, createdAt: { gte: prevStartDate, lt: startDate } },
+        });
+        let change = 0;
+        if (prevCount > 0) {
+          change = Math.round(((count - prevCount) / prevCount) * 100);
+        } else if (count > 0) {
+          change = 100;
+        }
+        totalIngestedVal = count;
+        ingestedChangeStr = `${change >= 0 ? '+' : ''}${change}%`;
+        ingestedIsPositive = change >= 0;
+
+        // 2. Urgent / Pending Actions
+        const pending = await prisma.actionItem.count({
+          where: {
+            isCompleted: false,
+            email: { userId },
+            createdAt: { gte: startDate, lte: endDate },
+          },
+        });
+        const prevPending = await prisma.actionItem.count({
+          where: {
+            isCompleted: false,
+            email: { userId },
+            createdAt: { gte: prevStartDate, lt: startDate },
+          },
+        });
+        let pChange = 0;
+        if (prevPending > 0) {
+          pChange = Math.round(((pending - prevPending) / prevPending) * 100);
+        } else if (pending > 0) {
+          pChange = 100;
+        }
+        pendingActionsVal = pending;
+        pendingChangeStr = `${pChange >= 0 ? '+' : ''}${pChange}%`;
+        pendingIsPositive = pChange <= 0; // decrease is positive
+
+        // 3. Resolution Rate
+        const totalT = await prisma.actionItem.count({
+          where: { email: { userId }, createdAt: { gte: startDate, lte: endDate } },
+        });
+        const completedT = await prisma.actionItem.count({
+          where: { isCompleted: true, email: { userId }, createdAt: { gte: startDate, lte: endDate } },
+        });
+        const resRate = totalT > 0 ? Math.round((completedT / totalT) * 100) : 0;
+
+        const prevTotalT = await prisma.actionItem.count({
+          where: { email: { userId }, createdAt: { gte: prevStartDate, lt: startDate } },
+        });
+        const prevCompletedT = await prisma.actionItem.count({
+          where: { isCompleted: true, email: { userId }, createdAt: { gte: prevStartDate, lt: startDate } },
+        });
+        const prevResRate = prevTotalT > 0 ? Math.round((prevCompletedT / prevTotalT) * 100) : 0;
+
+        const rChange = resRate - prevResRate;
+        resolutionRateVal = resRate;
+        resolutionChangeStr = `${rChange >= 0 ? '+' : ''}${rChange}%`;
+        resolutionIsPositive = rChange >= 0;
+      } else {
+        // ── CALCULATE LIFETIME/24H STATS (Backwards Compatibility) ──────────────────
+        // 1. Total Ingested
+        const totalIngested = await prisma.email.count({
+          where: { userId },
+        });
+        const last24hIngested = await prisma.email.count({
+          where: { userId, createdAt: { gte: last24h } },
+        });
+        const prev24hIngested = await prisma.email.count({
+          where: { userId, createdAt: { gte: prev24h, lt: last24h } },
+        });
+        let ingestedChange = 0;
+        if (prev24hIngested > 0) {
+          ingestedChange = Math.round(((last24hIngested - prev24hIngested) / prev24hIngested) * 100);
+        } else if (last24hIngested > 0) {
+          ingestedChange = 100;
+        }
+        totalIngestedVal = totalIngested;
+        ingestedChangeStr = `${ingestedChange >= 0 ? '+' : ''}${ingestedChange}%`;
+        ingestedIsPositive = ingestedChange >= 0;
+
+        // 2. Urgent / Pending Actions
+        const pendingActions = await prisma.actionItem.count({
+          where: {
+            isCompleted: false,
+            email: { userId },
+          },
+        });
+        const last24hPending = await prisma.actionItem.count({
+          where: {
+            isCompleted: false,
+            email: { userId },
+            createdAt: { gte: last24h },
+          },
+        });
+        const prev24hPending = await prisma.actionItem.count({
+          where: {
+            isCompleted: false,
+            email: { userId },
+            createdAt: { gte: prev24h, lt: last24h },
+          },
+        });
+        let pendingChange = 0;
+        if (prev24hPending > 0) {
+          pendingChange = Math.round(((last24hPending - prev24hPending) / prev24hPending) * 100);
+        } else if (last24hPending > 0) {
+          pendingChange = 100;
+        }
+        pendingActionsVal = pendingActions;
+        pendingChangeStr = `${pendingChange >= 0 ? '+' : ''}${pendingChange}%`;
+        pendingIsPositive = pendingChange <= 0;
+
+        // 3. Resolved Rate
+        const totalTasks = await prisma.actionItem.count({
+          where: { email: { userId } },
+        });
+        const completedTasks = await prisma.actionItem.count({
+          where: { isCompleted: true, email: { userId } },
+        });
+        const resolutionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+        const prevTotalTasks = await prisma.actionItem.count({
+          where: { email: { userId }, createdAt: { lt: last24h } },
+        });
+        const prevCompletedTasks = await prisma.actionItem.count({
+          where: { isCompleted: true, email: { userId }, createdAt: { lt: last24h } },
+        });
+        const prevResolutionRate = prevTotalTasks > 0 ? Math.round((prevCompletedTasks / prevTotalTasks) * 100) : 0;
+
+        let resolutionChange = 0;
+        if (prevResolutionRate > 0) {
+          resolutionChange = Math.round(((resolutionRate - prevResolutionRate) / prevResolutionRate) * 100);
+        } else if (resolutionRate > 0) {
+          resolutionChange = 100;
+        }
+        resolutionRateVal = resolutionRate;
+        resolutionChangeStr = `${resolutionChange >= 0 ? '+' : ''}${resolutionChange}%`;
+        resolutionIsPositive = resolutionChange >= 0;
       }
 
-      // 2. Urgent / Pending Actions
-      const pendingActions = await prisma.actionItem.count({
+      // 4. Category Breakdown
+      const categoriesRaw = await prisma.email.groupBy({
+        by: ['category'],
         where: {
-          isCompleted: false,
-          email: { userId },
+          userId,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        _count: {
+          id: true,
         },
       });
-      const last24hPending = await prisma.actionItem.count({
+      const categoryBreakdown = categoriesRaw.map((item) => ({
+        category: item.category || 'Uncategorized',
+        count: item._count.id,
+      }));
+
+      // 5. Priority Trends (grouped by day)
+      const emailsWithPriority = await prisma.email.findMany({
         where: {
-          isCompleted: false,
-          email: { userId },
-          createdAt: { gte: last24h },
+          userId,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        select: {
+          createdAt: true,
+          analysis: {
+            select: {
+              priorityScore: true,
+            },
+          },
         },
       });
-      const prev24hPending = await prisma.actionItem.count({
-        where: {
-          isCompleted: false,
-          email: { userId },
-          createdAt: { gte: prev24h, lt: last24h },
-        },
-      });
-      let pendingChange = 0;
-      if (prev24hPending > 0) {
-        pendingChange = Math.round(
-          ((last24hPending - prev24hPending) / prev24hPending) * 100
-        );
-      } else if (last24hPending > 0) {
-        pendingChange = 100;
+      const trendsMap: { [date: string]: { total: number; count: number } } = {};
+      const dIter = new Date(startDate.getTime());
+      // Fill the range daily mapping
+      while (dIter <= endDate) {
+        const dateStr = dIter.toISOString().split('T')[0];
+        trendsMap[dateStr] = { total: 0, count: 0 };
+        dIter.setDate(dIter.getDate() + 1);
       }
 
-      // 3. Resolved Rate
-      const totalTasks = await prisma.actionItem.count({
-        where: { email: { userId } },
+      emailsWithPriority.forEach((email) => {
+        const dateStr = email.createdAt.toISOString().split('T')[0];
+        const score = email.analysis?.priorityScore ?? 0.0;
+        if (trendsMap[dateStr] !== undefined) {
+          trendsMap[dateStr].total += score;
+          trendsMap[dateStr].count += 1;
+        }
       });
-      const completedTasks = await prisma.actionItem.count({
-        where: { isCompleted: true, email: { userId } },
-      });
-      const resolutionRate =
-        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      const priorityTrends = Object.entries(trendsMap)
+        .map(([date, data]) => ({
+          date,
+          avgPriority: data.count > 0 ? Number((data.total / data.count).toFixed(2)) : 0.0,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
 
-      // Previous 24h resolution rate to calculate trend
-      const prevTotalTasks = await prisma.actionItem.count({
-        where: { email: { userId }, createdAt: { lt: last24h } },
-      });
-      const prevCompletedTasks = await prisma.actionItem.count({
+      // 6. Action Completion Metrics
+      const actionItems = await prisma.actionItem.findMany({
         where: {
+          email: { userId },
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        select: {
           isCompleted: true,
-          email: { userId },
-          createdAt: { lt: last24h },
         },
       });
-      const prevResolutionRate =
-        prevTotalTasks > 0
-          ? Math.round((prevCompletedTasks / prevTotalTasks) * 100)
-          : 0;
 
-      let resolutionChange = 0;
-      if (prevResolutionRate > 0) {
-        resolutionChange = Math.round(
-          ((resolutionRate - prevResolutionRate) / prevResolutionRate) * 100
-        );
-      } else if (resolutionRate > 0) {
-        resolutionChange = 100;
-      }
+      let completedCount = 0;
+      let pendingCount = 0;
+      actionItems.forEach((item) => {
+        if (item.isCompleted) {
+          completedCount++;
+        } else {
+          pendingCount++;
+        }
+      });
+
+      const actionCompletion = {
+        completed: completedCount,
+        pending: pendingCount,
+        total: completedCount + pendingCount,
+      };
+
+      // 7. Top Senders Table
+      const sendersRaw = await prisma.email.groupBy({
+        by: ['sender'],
+        where: {
+          userId,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          _count: {
+            id: 'desc',
+          },
+        },
+        take: 10,
+      });
+
+      const topSenders = sendersRaw.map((item) => ({
+        sender: item.sender,
+        count: item._count.id,
+        name: item.sender.split('@')[0],
+      }));
 
       return res.status(200).json({
         totalIngested: {
-          value: totalIngested,
-          change: `${ingestedChange >= 0 ? '+' : ''}${ingestedChange}%`,
-          isPositive: ingestedChange >= 0,
+          value: totalIngestedVal,
+          change: ingestedChangeStr,
+          isPositive: ingestedIsPositive,
         },
         pendingActions: {
-          value: pendingActions,
-          change: `${pendingChange >= 0 ? '+' : ''}${pendingChange}%`,
-          isPositive: pendingChange <= 0, // decrease in pending items is positive
+          value: pendingActionsVal,
+          change: pendingChangeStr,
+          isPositive: pendingIsPositive,
         },
         resolutionRate: {
-          value: `${resolutionRate}%`,
-          change: `${resolutionChange >= 0 ? '+' : ''}${resolutionChange}%`,
-          isPositive: resolutionChange >= 0,
+          value: `${resolutionRateVal}%`,
+          change: resolutionChangeStr,
+          isPositive: resolutionIsPositive,
         },
+        categoryBreakdown,
+        priorityTrends,
+        actionCompletion,
+        topSenders,
       });
     } catch (error) {
       console.error('Failed to calculate dashboard stats:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * GET /api/dashboard/heatmap
+ * Returns daily and hourly volume statistics for user's emails within the specified range.
+ */
+app.get(
+  '/api/dashboard/heatmap',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      const startDateStr = req.query.startDate as string;
+      const endDateStr = req.query.endDate as string;
+
+      const now = new Date();
+      const startDate = startDateStr ? new Date(startDateStr) : new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const endDate = endDateStr ? new Date(endDateStr) : now;
+
+      const emails = await prisma.email.findMany({
+        where: {
+          userId,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        select: {
+          createdAt: true,
+        },
+      });
+
+      // Prepare daily map
+      const dailyMap: { [date: string]: number } = {};
+      const dIter = new Date(startDate.getTime());
+      while (dIter <= endDate) {
+        const dateStr = dIter.toISOString().split('T')[0];
+        dailyMap[dateStr] = 0;
+        dIter.setDate(dIter.getDate() + 1);
+      }
+
+      // Group by hour and day of week
+      const hourlyGrid: { [key: string]: number } = {};
+      for (let d = 0; d < 7; d++) {
+        for (let h = 0; h < 24; h++) {
+          hourlyGrid[`${d}-${h}`] = 0;
+        }
+      }
+
+      emails.forEach((email) => {
+        const dateStr = email.createdAt.toISOString().split('T')[0];
+        if (dailyMap[dateStr] !== undefined) {
+          dailyMap[dateStr] += 1;
+        }
+
+        const dayOfWeek = email.createdAt.getDay();
+        const hour = email.createdAt.getHours();
+        hourlyGrid[`${dayOfWeek}-${hour}`] += 1;
+      });
+
+      const daily = Object.entries(dailyMap).map(([date, count]) => ({
+        date,
+        count,
+      })).sort((a, b) => a.date.localeCompare(b.date));
+
+      const hourly = Object.entries(hourlyGrid).map(([key, count]) => {
+        const [dayOfWeek, hour] = key.split('-').map(Number);
+        return { dayOfWeek, hour, count };
+      });
+
+      return res.status(200).json({ daily, hourly });
+    } catch (error) {
+      console.error('Failed to calculate heatmap data:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
