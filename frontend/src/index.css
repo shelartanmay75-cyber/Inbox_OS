@@ -2,67 +2,227 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Neubrutalism Design System Tokens ─────────────────────────────────── */
 @layer base {
   :root {
-    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-    --accent: #6366f1;
-    --text-muted: #9ca3af;
+    /* Colors */
+    --color-bg:         #F5F2E8;   /* warm cream */
+    --color-surface:    #FFFFFF;   /* pure white card */
+    --color-ink:        #111111;   /* near-black text/border */
+    --color-accent:     #FFE34D;   /* yellow highlight */
+    --color-accent-cta: #2563EB;   /* blue CTA */
+    --color-success:    #16A34A;   /* green */
+    --color-danger:     #DC2626;   /* red */
+    --color-pending:    #D97706;   /* amber */
+    --color-info:       #7C3AED;   /* purple */
+
+    /* Typography */
+    --font-display: 'Archivo Black', 'Archivo', sans-serif;
+    --font-body:    'Inter', 'Archivo', sans-serif;
+    --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+
+    /* Offset Shadows */
+    --shadow-offset:       6px 6px 0 var(--color-ink);
+    --shadow-offset-sm:    4px 4px 0 var(--color-ink);
+    --shadow-offset-hover: 8px 8px 0 var(--color-ink);
+    --shadow-offset-xs:    2px 2px 0 var(--color-ink);
   }
 
   body {
-    background-color: #080b14;
-    color: #f3f4f6;
-    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    /* dot-grid background pattern */
+    background-image: radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  * {
+    border-radius: 0 !important;
   }
 }
 
-/* Premium Scrollbars */
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
+  background: #e8e3d4;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
+  background: var(--color-ink);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #444;
 }
 
-/* Glassmorphism custom classes */
-.glass {
-  background: rgba(17, 24, 39, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+/* ── Neubrutalism component classes ────────────────────────────────────── */
+@layer components {
+  /* Card */
+  .neu-card {
+    background-color: var(--color-surface);
+    border: 3px solid var(--color-ink);
+    box-shadow: var(--shadow-offset);
+  }
+
+  .neu-card-sm {
+    background-color: var(--color-surface);
+    border: 2px solid var(--color-ink);
+    box-shadow: var(--shadow-offset-sm);
+  }
+
+  /* Input */
+  .neu-input {
+    background-color: var(--color-surface);
+    border: 3px solid var(--color-ink);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: box-shadow 0.1s ease, transform 0.1s ease;
+  }
+  .neu-input:focus {
+    box-shadow: var(--shadow-offset-sm);
+    transform: translate(-1px, -1px);
+  }
+  .neu-input::placeholder {
+    color: #aaa;
+  }
+
+  /* Button - primary */
+  .neu-btn {
+    background-color: var(--color-surface);
+    border: 3px solid var(--color-ink);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: var(--shadow-offset-sm);
+    transition: box-shadow 0.1s ease, transform 0.1s ease;
+    cursor: pointer;
+  }
+  .neu-btn:hover {
+    box-shadow: none;
+    transform: translate(4px, 4px);
+  }
+  .neu-btn:active {
+    box-shadow: none;
+    transform: translate(4px, 4px);
+  }
+
+  /* Button - accent (yellow fill) */
+  .neu-btn-accent {
+    background-color: var(--color-accent);
+    border: 3px solid var(--color-ink);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: var(--shadow-offset-sm);
+    transition: box-shadow 0.1s ease, transform 0.1s ease;
+    cursor: pointer;
+  }
+  .neu-btn-accent:hover {
+    box-shadow: none;
+    transform: translate(4px, 4px);
+  }
+
+  /* Button - CTA (blue) */
+  .neu-btn-cta {
+    background-color: var(--color-accent-cta);
+    border: 3px solid var(--color-ink);
+    color: #fff;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: var(--shadow-offset-sm);
+    transition: box-shadow 0.1s ease, transform 0.1s ease;
+    cursor: pointer;
+  }
+  .neu-btn-cta:hover {
+    box-shadow: none;
+    transform: translate(4px, 4px);
+  }
+
+  /* Badge */
+  .neu-badge {
+    border: 2px solid var(--color-ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+  }
+
+  /* Section divider */
+  .neu-divider {
+    border: 0;
+    border-top: 3px solid var(--color-ink);
+  }
+
+  /* Glass overrides — neutralize glassmorphism */
+  .glass,
+  .glass-panel,
+  .glass-hover {
+    background: var(--color-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass {
+    border: 3px solid var(--color-ink) !important;
+    box-shadow: var(--shadow-offset) !important;
+  }
+  .glass-panel {
+    border: 2px solid var(--color-ink) !important;
+    box-shadow: var(--shadow-offset-sm) !important;
+  }
+
+  /* Glow effect override */
+  .glow-accent,
+  .glow-accent-hover:hover {
+    box-shadow: var(--shadow-offset-sm) !important;
+  }
+
+  /* Prose override for email body */
+  .prose {
+    color: var(--color-ink) !important;
+  }
+  .prose a {
+    color: var(--color-accent-cta) !important;
+  }
+  .prose strong {
+    color: var(--color-ink) !important;
+  }
 }
 
-.glass-panel {
-  background: rgba(17, 24, 39, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+/* ── Animations ─────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease forwards;
 }
 
-.glass-hover {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* Force checkbox/select appearance */
+input[type="checkbox"] {
+  accent-color: var(--color-ink);
 }
-.glass-hover:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.15);
-}
-
-/* Glow effects */
-.glow-accent {
-  box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.35);
-}
-.glow-accent-hover:hover {
-  box-shadow: 0 0 30px -2px rgba(99, 102, 241, 0.45);
+select {
+  background-color: var(--color-surface) !important;
+  border: 2px solid var(--color-ink) !important;
+  color: var(--color-ink) !important;
+  outline: none;
 }

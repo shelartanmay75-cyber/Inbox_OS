@@ -251,7 +251,7 @@ export const LandingPage: React.FC = () => {
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <div className="flex items-center justify-center w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 shadow-md">
-              <Sparkles size={16} className="text-white" />
+              <Sparkles size={16} className="text-black font-black" />
             </div>
             <div>
               <h1 className="text-base font-bold tracking-tight text-slate-900">
@@ -300,7 +300,7 @@ export const LandingPage: React.FC = () => {
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => navigate('/login')}
-              className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-sm shadow-indigo-600/10 active:scale-95"
+              className="px-4 py-2 text-xs font-semibold text-black font-black bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-sm shadow-indigo-600/10 active:scale-95"
             >
               Get Started
             </button>
@@ -360,7 +360,7 @@ export const LandingPage: React.FC = () => {
                   setIsMobileMenuOpen(false);
                   navigate('/login');
                 }}
-                className="flex-1 py-3 text-center text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all"
+                className="flex-1 py-3 text-center text-xs font-semibold text-black font-black bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all"
               >
                 Get Started
               </button>
@@ -398,7 +398,7 @@ export const LandingPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
               <button
                 onClick={() => navigate('/login')}
-                className="px-6 py-3.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-2xl transition-all shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/25 active:scale-98 flex items-center justify-center gap-2 font-bold"
+                className="px-6 py-3.5 text-xs font-semibold text-black font-black bg-indigo-600 hover:bg-indigo-500 rounded-2xl transition-all shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/25 active:scale-98 flex items-center justify-center gap-2 font-bold"
               >
                 <span>Get Started Free</span>
                 <ArrowRight size={14} />
@@ -446,7 +446,7 @@ export const LandingPage: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`p-2 rounded-lg ${heroLoopStep === 0 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500'}`}
+                    className={`p-2 rounded-lg ${heroLoopStep === 0 ? 'bg-indigo-600 text-black font-black' : 'bg-slate-200 text-slate-500'}`}
                   >
                     <Inbox size={14} />
                   </div>
@@ -486,7 +486,7 @@ export const LandingPage: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`p-2 rounded-lg ${heroLoopStep === 1 ? 'bg-indigo-600 text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`}
+                    className={`p-2 rounded-lg ${heroLoopStep === 1 ? 'bg-indigo-600 text-black font-black animate-pulse' : 'bg-slate-200 text-slate-500'}`}
                   >
                     <Cpu size={14} />
                   </div>
@@ -532,7 +532,7 @@ export const LandingPage: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`p-2 rounded-lg ${heroLoopStep === 2 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500'}`}
+                    className={`p-2 rounded-lg ${heroLoopStep === 2 ? 'bg-indigo-600 text-black font-black' : 'bg-slate-200 text-slate-500'}`}
                   >
                     <Zap size={14} />
                   </div>
@@ -569,7 +569,7 @@ export const LandingPage: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`p-2 rounded-lg ${heroLoopStep === 3 ? 'bg-indigo-600 text-white animate-bounce' : 'bg-slate-200 text-slate-500'}`}
+                    className={`p-2 rounded-lg ${heroLoopStep === 3 ? 'bg-indigo-600 text-black font-black animate-bounce' : 'bg-slate-200 text-slate-500'}`}
                   >
                     <Send size={14} />
                   </div>
@@ -1147,7 +1147,7 @@ export const LandingPage: React.FC = () => {
                     handleSimulateAction(selectedEmail.suggestedAction)
                   }
                   disabled={actionProgress}
-                  className="px-4.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 text-white font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 self-end shrink-0"
+                  className="px-4.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 text-black font-black font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 self-end shrink-0"
                 >
                   {actionProgress ? (
                     <>
@@ -1193,12 +1193,12 @@ export const LandingPage: React.FC = () => {
                 <div className="absolute top-[20%] left-[20%] w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full" />
 
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                <div className="flex items-center justify-between border-b-4 border-black pb-4 mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center text-black font-black font-bold text-xs">
                       OS
                     </div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-gray-700 font-bold uppercase tracking-widest">
                       InboxOS Workspace
                     </span>
                   </div>
@@ -1209,51 +1209,51 @@ export const LandingPage: React.FC = () => {
 
                 {/* Simulated metrics */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 text-left">
-                    <p className="text-[9px] text-gray-400">Total Ingested</p>
-                    <p className="text-sm font-bold text-white mt-1">1,284</p>
+                  <div className="bg-white border-2 border-black border border-black rounded-xl p-2.5 text-left">
+                    <p className="text-[9px] text-gray-700 font-bold">Total Ingested</p>
+                    <p className="text-sm font-bold text-black font-black mt-1">1,284</p>
                   </div>
-                  <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 text-left">
-                    <p className="text-[9px] text-gray-400">Urgent Alerts</p>
+                  <div className="bg-white border-2 border-black border border-black rounded-xl p-2.5 text-left">
+                    <p className="text-[9px] text-gray-700 font-bold">Urgent Alerts</p>
                     <p className="text-sm font-bold text-amber-400 mt-1">4</p>
                   </div>
-                  <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 text-left">
-                    <p className="text-[9px] text-gray-400">Auto-Resolved</p>
-                    <p className="text-sm font-bold text-white mt-1">84%</p>
+                  <div className="bg-white border-2 border-black border border-black rounded-xl p-2.5 text-left">
+                    <p className="text-[9px] text-gray-700 font-bold">Auto-Resolved</p>
+                    <p className="text-sm font-bold text-black font-black mt-1">84%</p>
                   </div>
                 </div>
 
                 {/* Mock backlogs */}
                 <div className="space-y-2 text-left">
-                  <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3">
+                  <div className="bg-white border border-black rounded-xl p-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-bold text-indigo-400">
+                      <span className="text-[10px] font-bold text-blue-600">
                         sarah@startup.co
                       </span>
-                      <span className="text-[9px] text-gray-500">
+                      <span className="text-[9px] text-gray-600 font-bold">
                         2 mins ago
                       </span>
                     </div>
                     <p className="text-xs font-bold text-gray-200">
                       Sarah requested moving sync to Wednesday at 2pm...
                     </p>
-                    <p className="text-[9px] text-gray-400 mt-1">
+                    <p className="text-[9px] text-gray-700 font-bold mt-1">
                       AI Action: Scheduled calendar event Wednesday 2:00 PM
                     </p>
                   </div>
-                  <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3 opacity-80">
+                  <div className="bg-white border border-black rounded-xl p-3 opacity-80">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] font-bold text-emerald-400">
                         billing@aws.com
                       </span>
-                      <span className="text-[9px] text-gray-500">
+                      <span className="text-[9px] text-gray-600 font-bold">
                         1 hour ago
                       </span>
                     </div>
                     <p className="text-xs font-bold text-gray-200">
                       Your invoice for June 2026 usage ($1,420.50) is now...
                     </p>
-                    <p className="text-[9px] text-gray-400 mt-1">
+                    <p className="text-[9px] text-gray-700 font-bold mt-1">
                       AI Action: Created task backlogs in AWS logging
                     </p>
                   </div>
@@ -1328,7 +1328,7 @@ export const LandingPage: React.FC = () => {
                 href="https://github.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-3 rounded-xl bg-slate-955 text-white font-semibold text-xs transition-all hover:bg-slate-800 flex items-center justify-center gap-2"
+                className="px-5 py-3 rounded-xl bg-slate-955 text-black font-black font-semibold text-xs transition-all hover:bg-slate-800 flex items-center justify-center gap-2"
               >
                 <GithubIcon size={14} />
                 <span>Explore GitHub Repository</span>
@@ -1338,82 +1338,82 @@ export const LandingPage: React.FC = () => {
 
           {/* Interactive Monorepo Folder Tree Right */}
           <div className="lg:col-span-6 relative flex justify-center">
-            <div className="w-full max-w-[480px] bg-slate-900 border border-white/10 rounded-2xl p-5 text-left font-mono text-[11px] text-gray-300 shadow-xl relative overflow-hidden">
+            <div className="w-full max-w-[480px] bg-white border border-white/10 rounded-2xl p-5 text-left font-mono text-[11px] text-gray-800 font-bold shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-2xl rounded-full" />
 
-              <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4 text-gray-400 font-bold text-[10px] uppercase">
+              <div className="flex items-center justify-between pb-3 border-b-4 border-black mb-4 text-gray-700 font-bold font-bold text-[10px] uppercase">
                 <span>📁 Repository Monorepo Structure</span>
                 <span>inboxos/inboxos</span>
               </div>
 
               {/* Tree structure */}
-              <div className="space-y-1.5 text-gray-300">
+              <div className="space-y-1.5 text-gray-800 font-bold">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500">📁</span>
-                  <span className="text-indigo-400 font-bold">apps/</span>
+                  <span className="text-gray-600 font-bold">📁</span>
+                  <span className="text-blue-600 font-bold">apps/</span>
                 </div>
                 <div className="pl-6 flex items-center gap-2">
-                  <span className="text-gray-500">📁</span>
+                  <span className="text-gray-600 font-bold">📁</span>
                   <span className="text-gray-200">api/</span>
-                  <span className="text-gray-500 text-[10px] italic">
+                  <span className="text-gray-600 font-bold text-[10px] italic">
                     (FastAPI backend server)
                   </span>
                 </div>
                 <div className="pl-6 flex items-center gap-2">
-                  <span className="text-gray-500">📁</span>
+                  <span className="text-gray-600 font-bold">📁</span>
                   <span className="text-gray-200">web/</span>
-                  <span className="text-gray-500 text-[10px] italic">
+                  <span className="text-gray-600 font-bold text-[10px] italic">
                     (Next.js / Vite dashboard)
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-gray-500">📁</span>
-                  <span className="text-indigo-400 font-bold">config/</span>
+                  <span className="text-gray-600 font-bold">📁</span>
+                  <span className="text-blue-600 font-bold">config/</span>
                 </div>
                 <div className="pl-6 flex items-center gap-2">
-                  <span className="text-gray-500">📁</span>
+                  <span className="text-gray-600 font-bold">📁</span>
                   <span className="text-gray-200">docker/</span>
-                  <span className="text-gray-500 text-[10px] italic">
+                  <span className="text-gray-600 font-bold text-[10px] italic">
                     (Compose stacks)
                   </span>
                 </div>
                 <div className="pl-6 flex items-center gap-2">
-                  <span className="text-gray-500">📁</span>
+                  <span className="text-gray-600 font-bold">📁</span>
                   <span className="text-gray-200">env/</span>
-                  <span className="text-gray-500 text-[10px] italic">
+                  <span className="text-gray-600 font-bold text-[10px] italic">
                     (.env configuration options)
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-gray-500">📁</span>
-                  <span className="text-indigo-400 font-bold">packages/</span>
+                  <span className="text-gray-600 font-bold">📁</span>
+                  <span className="text-blue-600 font-bold">packages/</span>
                 </div>
                 <div className="pl-6 flex items-center gap-2">
-                  <span className="text-gray-500">📁</span>
+                  <span className="text-gray-600 font-bold">📁</span>
                   <span className="text-gray-200">rules/</span>
-                  <span className="text-gray-500 text-[10px] italic">
+                  <span className="text-gray-600 font-bold text-[10px] italic">
                     (DSL parser utilities)
                   </span>
                 </div>
                 <div className="pl-6 flex items-center gap-2">
-                  <span className="text-gray-500">📁</span>
+                  <span className="text-gray-600 font-bold">📁</span>
                   <span className="text-gray-200">plugins/</span>
-                  <span className="text-gray-500 text-[10px] italic">
+                  <span className="text-gray-600 font-bold text-[10px] italic">
                     (Ingestion SDK connector)
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
-                  <span className="text-gray-500">📄</span>
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t-4 border-black">
+                  <span className="text-gray-600 font-bold">📄</span>
                   <span className="text-emerald-400 font-semibold">
                     docker-compose.yml
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500">📄</span>
-                  <span className="text-gray-400">README.md</span>
+                  <span className="text-gray-600 font-bold">📄</span>
+                  <span className="text-gray-700 font-bold">README.md</span>
                 </div>
               </div>
             </div>
@@ -1608,7 +1608,7 @@ export const LandingPage: React.FC = () => {
 
       {/* ── Final CTA Section ──────────────────────────────────────────────────── */}
       <section className="py-24 px-6 z-10 relative">
-        <div className="max-w-4xl mx-auto text-center bg-gradient-to-tr from-indigo-900 to-violet-900 rounded-3xl p-12 text-white shadow-2xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto text-center bg-gradient-to-tr from-indigo-900 to-violet-900 rounded-3xl p-12 text-black font-black shadow-2xl relative overflow-hidden">
           <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:16px_16px]" />
           <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-indigo-500/10 to-transparent blur-3xl" />
 
@@ -1635,7 +1635,7 @@ export const LandingPage: React.FC = () => {
                 href="https://github.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto px-6 py-3.5 text-xs font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/10 rounded-2xl transition-all flex items-center justify-center gap-1.5"
+                className="w-full sm:w-auto px-6 py-3.5 text-xs font-semibold text-black font-black bg-white border-2 border-black shadow-[2px_2px_0_0_#111] hover:bg-white/15 border border-white/10 rounded-2xl transition-all flex items-center justify-center gap-1.5"
               >
                 <GithubIcon size={14} />
                 <span>Explore GitHub</span>
@@ -1646,16 +1646,16 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ── Footer Section ─────────────────────────────────────────────────────── */}
-      <footer className="bg-slate-900 text-slate-400 py-16 px-6 border-t border-slate-800 z-10 relative">
+      <footer className="bg-white text-slate-400 py-16 px-6 border-t border-slate-800 z-10 relative">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
             {/* Logo details */}
             <div className="col-span-2 space-y-4">
               <div className="flex items-center gap-2">
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 shadow">
-                  <Sparkles size={14} className="text-white" />
+                  <Sparkles size={14} className="text-black font-black" />
                 </div>
-                <h4 className="text-sm font-bold text-white">InboxOS</h4>
+                <h4 className="text-sm font-bold text-black font-black">InboxOS</h4>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed max-w-xs text-left">
                 The decision and execution layer sitting above Gmail and
@@ -1673,7 +1673,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="#features"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Features
                   </a>
@@ -1681,7 +1681,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="#pipeline"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     AI Pipeline
                   </a>
@@ -1689,7 +1689,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="#demo"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Interactive Demo
                   </a>
@@ -1697,7 +1697,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="#comparison"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Comparisons
                   </a>
@@ -1713,7 +1713,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     GitHub Repository
                   </a>
@@ -1721,7 +1721,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Monorepo Guide
                   </a>
@@ -1729,7 +1729,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Plugin SDK
                   </a>
@@ -1737,7 +1737,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Rules DSL Documentation
                   </a>
@@ -1753,7 +1753,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Self-Host Guide
                   </a>
@@ -1761,7 +1761,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Docker Stacks
                   </a>
@@ -1769,7 +1769,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Ollama Local Setup
                   </a>
@@ -1777,7 +1777,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     API Docs
                   </a>
@@ -1793,7 +1793,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     MIT License
                   </a>
@@ -1801,7 +1801,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Terms of Service
                   </a>
@@ -1809,7 +1809,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <a
                     href="https://github.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-black font-black transition-colors"
                   >
                     Privacy Policy
                   </a>
