@@ -40,8 +40,27 @@
     background-size: 20px 20px;
   }
 
-  * {
+  body.landing-page-active {
+    background-color: #FCFCFE !important;
+    color: #111827 !important;
+    font-family: 'Inter', sans-serif !important;
+    background-image: none !important;
+    --avatar-border: #E6E8F0;
+    --avatar-font: 'Inter', sans-serif;
+  }
+
+  body:not(.landing-page-active) * {
     border-radius: 0 !important;
+  }
+
+  /* Subtle engineering grid background */
+  .engineering-grid {
+    background-image: 
+      linear-gradient(to right, rgba(91, 77, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(91, 77, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black, transparent 75%);
   }
 }
 
