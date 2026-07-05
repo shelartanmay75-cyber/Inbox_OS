@@ -6,10 +6,9 @@ export interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
-  className?: string; // Optional class override for custom dimensions/padding
+  className?: string;
 }
 
-// Selector of focusable elements for accessibility focus trapping
 const FOCUSABLE_SELECTOR =
   'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], [contenteditable]';
 
@@ -25,13 +24,10 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Store current active element to restore when modal closes
       previousActiveElement.current = document.activeElement as HTMLElement;
 
-      // Focus the modal content area or the first focusable element
       if (modalRef.current) {
-        const focusableElements =
-          modalRef.current.querySelectorAll(FOCUSABLE_SELECTOR);
+        const focusableElements = modalRef.current.querySelectorAll(FOCUSABLE_SELECTOR);
         if (focusableElements.length > 0) {
           (focusableElements[0] as HTMLElement).focus();
         } else {
@@ -40,53 +36,32 @@ export const Modal: React.FC<ModalProps> = ({
       }
 
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Close on escape
         if (e.key === 'Escape') {
           onClose();
           return;
         }
-
-        // Trap focus inside modal on Tab key navigation
         if (e.key === 'Tab' && modalRef.current) {
           const focusable = Array.from(
             modalRef.current.querySelectorAll(FOCUSABLE_SELECTOR)
           ) as HTMLElement[];
-
-          if (focusable.length === 0) {
-            e.preventDefault();
-            return;
-          }
-
+          if (focusable.length === 0) { e.preventDefault(); return; }
           const first = focusable[0];
           const last = focusable[focusable.length - 1];
-
           if (e.shiftKey) {
-            // Shift + Tab (go backwards)
-            if (document.activeElement === first) {
-              last.focus();
-              e.preventDefault();
-            }
+            if (document.activeElement === first) { last.focus(); e.preventDefault(); }
           } else {
-            // Tab (go forwards)
-            if (document.activeElement === last) {
-              first.focus();
-              e.preventDefault();
-            }
+            if (document.activeElement === last) { first.focus(); e.preventDefault(); }
           }
         }
       };
 
       document.addEventListener('keydown', handleKeyDown);
-
-      // Prevent background scrolling while modal is open
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
 
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
         document.body.style.overflow = originalOverflow;
-
-        // Restore focus to original trigger element
         if (previousActiveElement.current) {
           previousActiveElement.current.focus();
         }
@@ -97,15 +72,13 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only close if clicking the backdrop wrapper directly
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
+    if (e.target === e.currentTarget) onClose();
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn"
+      style={{ backgroundColor: 'rgba(17,17,17,0.6)' }}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
@@ -115,14 +88,23 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative glass rounded-3xl border border-white/10 shadow-2xl p-6 md:p-8 outline-none text-left max-h-[90vh] overflow-y-auto flex flex-col ${className}`}
+        className={`relative p-6 md:p-8 outline-none text-left max-h-[90vh] overflow-y-auto flex flex-col animate-scaleUp ${className}`}
+        style={{
+          backgroundColor: 'var(--color-surface)',
+          border: '3px solid var(--color-ink)',
+          boxShadow: '8px 8px 0px var(--color-ink)',
+        }}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+        <div
+          className="flex items-center justify-between mb-5 pb-4"
+          style={{ borderBottom: '3px solid var(--color-ink)' }}
+        >
           {title ? (
             <h2
               id="modal-title"
-              className="text-base font-bold text-white tracking-tight"
+              className="text-base font-bold tracking-tight uppercase"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-ink)' }}
             >
               {title}
             </h2>
@@ -132,14 +114,27 @@ export const Modal: React.FC<ModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className="p-1.5 flex items-center justify-center transition-all focus:outline-none"
+            style={{
+              border: '2px solid var(--color-ink)',
+              backgroundColor: 'var(--color-surface)',
+              boxShadow: '2px 2px 0px var(--color-ink)',
+            }}
             aria-label="Close modal"
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+              (e.currentTarget as HTMLElement).style.transform = 'translate(2px,2px)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = '2px 2px 0px var(--color-ink)';
+              (e.currentTarget as HTMLElement).style.transform = '';
+            }}
           >
             <X size={16} />
           </button>
         </div>
 
-        {/* Modal Body content */}
+        {/* Modal Body */}
         <div className="flex-1 overflow-y-auto min-h-0 pr-1">{children}</div>
       </div>
     </div>

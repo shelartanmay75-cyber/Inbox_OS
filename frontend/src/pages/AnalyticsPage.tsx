@@ -102,23 +102,23 @@ export const AnalyticsPage: React.FC = () => {
   if (isPageLoading) {
     return (
       <div className="space-y-8 animate-fadeIn text-left p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-black pb-5">
           <div className="space-y-2">
-            <div className="h-7 w-48 bg-white/5 rounded-lg animate-pulse" />
-            <div className="h-4 w-72 bg-white/5 rounded-lg animate-pulse" />
+            <div className="h-7 w-48 animate-pulse bg-[#e8e5d8] border-2 border-black" />
+            <div className="h-4 w-72 animate-pulse bg-[#e8e5d8] border-2 border-black" />
           </div>
-          <div className="h-10 w-64 bg-white/5 rounded-xl animate-pulse" />
+          <div className="h-10 w-64 animate-pulse bg-[#e8e5d8] border-2 border-black" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="glass rounded-2xl p-5 border border-white/5 h-28 animate-pulse" />
+            <div key={i} className="neu-card p-5 h-28 animate-pulse" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 glass rounded-2xl p-6 border border-white/5 h-96 animate-pulse" />
-          <div className="lg:col-span-2 glass rounded-2xl p-6 border border-white/5 h-96 animate-pulse" />
+          <div className="lg:col-span-1 neu-card p-6 h-96 animate-pulse" />
+          <div className="lg:col-span-2 neu-card p-6 h-96 animate-pulse" />
         </div>
-        <div className="glass rounded-2xl p-6 border border-white/5 h-64 animate-pulse" />
+        <div className="neu-card p-6 h-64 animate-pulse" />
       </div>
     );
   }
@@ -127,8 +127,8 @@ export const AnalyticsPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6">
         <AlertCircle className="text-rose-500 mb-4" size={48} />
-        <h3 className="text-lg font-bold text-white mb-2">Failed to load analytics</h3>
-        <p className="text-xs text-gray-400 max-w-md mb-6">
+        <h3 className="text-lg font-bold text-black mb-2">Failed to load analytics</h3>
+        <p className="text-xs text-gray-700 font-bold max-w-md mb-6">
           There was an error communicating with the InboxOS API server. Make sure the backend is active.
         </p>
       </div>
@@ -153,12 +153,12 @@ export const AnalyticsPage: React.FC = () => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="glass bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-xl text-left">
-          <p className="text-xs font-bold text-white mb-1 uppercase tracking-wider">
+        <div className="neu-card p-3 text-left">
+          <p className="text-xs font-bold text-black mb-1 uppercase tracking-wider">
             {data.category}
           </p>
-          <p className="text-xs text-indigo-400 font-semibold">
-            Emails: <span className="text-white font-extrabold">{data.count}</span>
+          <p className="text-xs text-blue-600 font-semibold">
+            Emails: <span className="text-black font-extrabold">{data.count}</span>
           </p>
         </div>
       );
@@ -170,13 +170,13 @@ export const AnalyticsPage: React.FC = () => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="glass bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-xl text-left">
-          <p className="text-[10px] text-gray-400 font-semibold mb-1">
+        <div className="neu-card p-3 text-left">
+          <p className="text-[10px] text-gray-700 font-bold font-semibold mb-1">
             {format(parseISO(data.date), 'MMM d, yyyy')}
           </p>
-          <p className="text-xs text-indigo-400 font-semibold">
+          <p className="text-xs text-blue-600 font-semibold">
             Avg Priority:{' '}
-            <span className="text-white font-extrabold">
+            <span className="text-black font-extrabold">
               {data.avgPriority <= 1.0
                 ? `${(data.avgPriority * 100).toFixed(0)}%`
                 : `${data.avgPriority.toFixed(0)}/100`}
@@ -191,27 +191,27 @@ export const AnalyticsPage: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn text-left p-6 md:p-8">
       {/* ── Page Header & Date Range Picker ────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-black pb-5">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold tracking-tight text-black flex items-center gap-2">
             Inbox Analytics Insights
-            <BarChart3 className="text-indigo-400 animate-pulse" size={20} />
+            <BarChart3 className="text-blue-600 animate-pulse" size={20} />
           </h2>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-700 font-bold">
             Monitor email traffic volume, categorization, priority trends, and automated actions.
           </p>
         </div>
 
         {/* Date presets and inputs */}
-        <div className="flex flex-wrap items-center gap-3 bg-white/3 border border-white/5 rounded-xl p-1.5 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-3 bg-white border-[3px] border-black shadow-[4px_4px_0_0_#111] p-1.5 self-start md:self-auto">
           {(['7d', '30d', '90d', 'custom'] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPreset(p)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
                 preset === p
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-indigo-600 text-black shadow-md'
+                  : 'text-gray-700 font-bold hover:text-black'
               }`}
             >
               {p}
@@ -226,7 +226,7 @@ export const AnalyticsPage: React.FC = () => {
                 onChange={(e) => setCustomStart(e.target.value)}
                 className="bg-transparent text-xs text-gray-200 focus:outline-none cursor-pointer"
               />
-              <span className="text-gray-500 text-xs">-</span>
+              <span className="text-gray-600 font-bold text-xs">-</span>
               <input
                 type="date"
                 value={customEnd}
@@ -241,22 +241,22 @@ export const AnalyticsPage: React.FC = () => {
       {/* ── Top Level Stats Row ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-left">
         {/* Total Ingested */}
-        <div className="glass rounded-2xl p-5 border border-white/5 relative overflow-hidden transition-all duration-300 hover:border-white/10">
+        <div className="neu-card p-5 relative overflow-hidden transition-all duration-300">
           <div className="flex justify-between items-start mb-3">
-            <span className="text-xs font-medium text-gray-400">Total Ingested</span>
-            <div className="p-2 rounded-xl bg-white/5 text-indigo-400">
+            <span className="text-xs font-medium text-gray-700 font-bold">Total Ingested</span>
+            <div className="p-2 rounded-xl bg-white/5 text-blue-600">
               <Inbox size={18} />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-white">
+            <span className="text-2xl font-bold tracking-tight text-black">
               {stats?.totalIngested?.value ?? 0}
             </span>
             <span
               className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
                 stats?.totalIngested?.isPositive
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-400'
+                  ? 'bg-green-500 text-white border-2 border-black'
+                  : 'bg-red-500 text-white border-2 border-black'
               }`}
             >
               {stats?.totalIngested?.change ?? '0%'}
@@ -266,22 +266,22 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Action Completion Rate */}
-        <div className="glass rounded-2xl p-5 border border-white/5 relative overflow-hidden transition-all duration-300 hover:border-white/10">
+        <div className="neu-card p-5 relative overflow-hidden transition-all duration-300">
           <div className="flex justify-between items-start mb-3">
-            <span className="text-xs font-medium text-gray-400">Action Resolution Rate</span>
-            <div className="p-2 rounded-xl bg-white/5 text-emerald-400">
+            <span className="text-xs font-medium text-gray-700 font-bold">Action Resolution Rate</span>
+            <div className="p-2 rounded-xl bg-green-500 text-white border-2 border-black">
               <CheckCircle2 size={18} />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-white">
+            <span className="text-2xl font-bold tracking-tight text-black">
               {stats?.resolutionRate?.value ?? '0%'}
             </span>
             <span
               className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
                 stats?.resolutionRate?.isPositive
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-400'
+                  ? 'bg-green-500 text-white border-2 border-black'
+                  : 'bg-red-500 text-white border-2 border-black'
               }`}
             >
               {stats?.resolutionRate?.change ?? '0%'}
@@ -291,22 +291,22 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Urgent Actions Required */}
-        <div className="glass rounded-2xl p-5 border border-white/5 relative overflow-hidden transition-all duration-300 hover:border-white/10">
+        <div className="neu-card p-5 relative overflow-hidden transition-all duration-300">
           <div className="flex justify-between items-start mb-3">
-            <span className="text-xs font-medium text-gray-400">Urgent Pending Actions</span>
-            <div className="p-2 rounded-xl bg-white/5 text-amber-400">
+            <span className="text-xs font-medium text-gray-700 font-bold">Urgent Pending Actions</span>
+            <div className="p-2 rounded-xl bg-yellow-400 text-black border-2 border-black">
               <ShieldAlert size={18} className="animate-pulse" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-white">
+            <span className="text-2xl font-bold tracking-tight text-black">
               {stats?.pendingActions?.value ?? 0}
             </span>
             <span
               className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
                 stats?.pendingActions?.isPositive
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-400'
+                  ? 'bg-green-500 text-white border-2 border-black'
+                  : 'bg-red-500 text-white border-2 border-black'
               }`}
             >
               {stats?.pendingActions?.change ?? '0%'}
@@ -319,10 +319,10 @@ export const AnalyticsPage: React.FC = () => {
       {/* ── Main Interactive Visualization Grid ────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Category Breakdown Pie Chart */}
-        <div className="lg:col-span-1 glass border border-white/5 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between min-h-[380px] text-left">
+        <div className="lg:col-span-1 neu-card p-6 relative overflow-hidden flex flex-col justify-between min-h-[380px] text-left">
           <div>
-            <h3 className="text-sm font-semibold text-white mb-1">Category Distribution</h3>
-            <p className="text-[10px] text-gray-400 mb-4">Email categories classified automatically by the AI system.</p>
+            <h3 className="text-sm font-semibold text-black mb-1">Category Distribution</h3>
+            <p className="text-[10px] text-gray-700 font-bold mb-4">Email categories classified automatically by the AI system.</p>
           </div>
 
           <div className="flex-1 flex items-center justify-center relative">
@@ -347,12 +347,12 @@ export const AnalyticsPage: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="text-center text-xs text-gray-500 py-10">No data for this period</div>
+              <div className="text-center text-xs text-gray-600 font-bold py-10">No data for this period</div>
             )}
           </div>
 
           {/* Simple Legend grid */}
-          <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 text-[10px] font-semibold text-gray-300 text-left">
+          <div className="grid grid-cols-3 gap-2 border-t-4 border-black pt-4 text-[10px] font-semibold text-gray-800 font-bold text-left">
             {categoryBreakdown.slice(0, 6).map((item: any, idx: number) => (
               <div key={item.category} className="flex items-center gap-1.5 truncate">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
@@ -363,10 +363,10 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Priority Trend Chart */}
-        <div className="lg:col-span-2 glass border border-white/5 rounded-2xl p-6 relative overflow-hidden flex flex-col min-h-[380px] text-left">
+        <div className="lg:col-span-2 neu-card p-6 relative overflow-hidden flex flex-col min-h-[380px] text-left">
           <div>
-            <h3 className="text-sm font-semibold text-white mb-1">Average Priority Trend</h3>
-            <p className="text-[10px] text-gray-400 mb-4">Evolution of average importance rating scored by decision pipeline models.</p>
+            <h3 className="text-sm font-semibold text-black mb-1">Average Priority Trend</h3>
+            <p className="text-[10px] text-gray-700 font-bold mb-4">Evolution of average importance rating scored by decision pipeline models.</p>
           </div>
 
           <div className="flex-1 w-full min-h-[220px]">
@@ -379,15 +379,15 @@ export const AnalyticsPage: React.FC = () => {
                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
                   <XAxis
                     dataKey="date"
                     tickFormatter={(tick) => format(parseISO(tick), 'MMM d')}
-                    stroke="rgba(255,255,255,0.2)"
+                    stroke="rgba(0,0,0,0.8)"
                     tick={{ fill: '#9ca3af', fontSize: 9 }}
                   />
                   <YAxis
-                    stroke="rgba(255,255,255,0.2)"
+                    stroke="rgba(0,0,0,0.8)"
                     tick={{ fill: '#9ca3af', fontSize: 9 }}
                     domain={[0, 'auto']}
                   />
@@ -403,7 +403,7 @@ export const AnalyticsPage: React.FC = () => {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-xs text-gray-500">No data for this period</div>
+              <div className="flex items-center justify-center h-full text-xs text-gray-600 font-bold">No data for this period</div>
             )}
           </div>
         </div>
@@ -414,11 +414,11 @@ export const AnalyticsPage: React.FC = () => {
         {/* Heatmap & Senders panel */}
         <div className="lg:col-span-2 space-y-8">
           {/* GitHub-style Volume Heatmap */}
-          <div className="glass border border-white/5 rounded-2xl p-6 relative overflow-hidden text-left">
+          <div className="neu-card p-6 relative overflow-hidden text-left">
             <div className="flex justify-between items-center mb-3">
               <div>
-                <h3 className="text-sm font-semibold text-white mb-1">Email Volume Heatmap</h3>
-                <p className="text-[10px] text-gray-400">Total ingested emails showing density patterns for selected timeframe.</p>
+                <h3 className="text-sm font-semibold text-black mb-1">Email Volume Heatmap</h3>
+                <p className="text-[10px] text-gray-700 font-bold">Total ingested emails showing density patterns for selected timeframe.</p>
               </div>
             </div>
 
@@ -444,7 +444,7 @@ export const AnalyticsPage: React.FC = () => {
                     );
                   })}
                 </div>
-                <div className="flex justify-end gap-1.5 items-center mt-3 text-[9px] text-gray-500 font-semibold">
+                <div className="flex justify-end gap-1.5 items-center mt-3 text-[9px] text-gray-600 font-bold font-semibold">
                   <span>Less</span>
                   <div className="w-2.5 h-2.5 rounded-[2px] bg-white/5" />
                   <div className="w-2.5 h-2.5 rounded-[2px] bg-emerald-500/25" />
@@ -455,22 +455,22 @@ export const AnalyticsPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="text-center text-xs text-gray-500 py-6">No data for this period</div>
+              <div className="text-center text-xs text-gray-600 font-bold py-6">No data for this period</div>
             )}
           </div>
 
           {/* Top Senders Table */}
-          <div className="glass border border-white/5 rounded-2xl p-6 relative overflow-hidden text-left">
+          <div className="neu-card p-6 relative overflow-hidden text-left">
             <div>
-              <h3 className="text-sm font-semibold text-white mb-1">Top Active Senders</h3>
-              <p className="text-[10px] text-gray-400 mb-4">Senders who broadcast emails most frequently to this inbox.</p>
+              <h3 className="text-sm font-semibold text-black mb-1">Top Active Senders</h3>
+              <p className="text-[10px] text-gray-700 font-bold mb-4">Senders who broadcast emails most frequently to this inbox.</p>
             </div>
 
             {topSenders.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-gray-300">
+                <table className="w-full text-left text-xs text-gray-800 font-bold">
                   <thead>
-                    <tr className="border-b border-white/5 text-[9px] text-gray-400 uppercase tracking-widest font-bold">
+                    <tr className="border-b-4 border-black text-[9px] text-gray-700 font-bold uppercase tracking-widest font-bold">
                       <th className="pb-3 pl-2">Sender</th>
                       <th className="pb-3 text-right pr-2">Total Broadcasts</th>
                     </tr>
@@ -487,10 +487,10 @@ export const AnalyticsPage: React.FC = () => {
                           </div>
                           <div>
                             <p className="font-semibold text-gray-100">{sender.name}</p>
-                            <p className="text-[9px] text-gray-500">{sender.sender}</p>
+                            <p className="text-[9px] text-gray-600 font-bold">{sender.sender}</p>
                           </div>
                         </td>
-                        <td className="py-3.5 text-right pr-2 font-bold text-white">
+                        <td className="py-3.5 text-right pr-2 font-bold text-black">
                           {sender.count}
                         </td>
                       </tr>
@@ -499,16 +499,16 @@ export const AnalyticsPage: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <div className="text-center text-xs text-gray-500 py-6">No data for this period</div>
+              <div className="text-center text-xs text-gray-600 font-bold py-6">No data for this period</div>
             )}
           </div>
         </div>
 
         {/* Action Completion Circular Gauge */}
-        <div className="lg:col-span-1 glass border border-white/5 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between min-h-[320px] text-left">
+        <div className="lg:col-span-1 neu-card p-6 relative overflow-hidden flex flex-col justify-between min-h-[320px] text-left">
           <div>
-            <h3 className="text-sm font-semibold text-white mb-1">Resolution Rate Gauge</h3>
-            <p className="text-[10px] text-gray-400 mb-4">Ratio of completed action items against pending workloads.</p>
+            <h3 className="text-sm font-semibold text-black mb-1">Resolution Rate Gauge</h3>
+            <p className="text-[10px] text-gray-700 font-bold mb-4">Ratio of completed action items against pending workloads.</p>
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -538,24 +538,24 @@ export const AnalyticsPage: React.FC = () => {
                 </svg>
                 {/* Visual content inside */}
                 <div className="absolute text-center">
-                  <span className="text-3xl font-extrabold text-white tracking-tight">{completionRate}%</span>
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">Resolved</p>
+                  <span className="text-3xl font-extrabold text-black tracking-tight">{completionRate}%</span>
+                  <p className="text-[9px] text-gray-600 font-bold font-bold uppercase tracking-wider mt-0.5">Resolved</p>
                 </div>
               </div>
             ) : (
-              <div className="text-center text-xs text-gray-500 py-10">No action workloads found</div>
+              <div className="text-center text-xs text-gray-600 font-bold py-10">No action workloads found</div>
             )}
           </div>
 
-          <div className="flex justify-around items-center border-t border-white/5 pt-4 text-center">
+          <div className="flex justify-around items-center border-t-4 border-black pt-4 text-center">
             <div>
-              <p className="text-lg font-bold text-white">{actionCompletion.completed}</p>
-              <p className="text-[9px] text-gray-500 font-semibold uppercase">Completed</p>
+              <p className="text-lg font-bold text-black">{actionCompletion.completed}</p>
+              <p className="text-[9px] text-gray-600 font-bold font-semibold uppercase">Completed</p>
             </div>
             <div className="h-6 w-px bg-white/5" />
             <div>
-              <p className="text-lg font-bold text-white">{actionCompletion.pending}</p>
-              <p className="text-[9px] text-gray-500 font-semibold uppercase">Pending</p>
+              <p className="text-lg font-bold text-black">{actionCompletion.pending}</p>
+              <p className="text-[9px] text-gray-600 font-bold font-semibold uppercase">Pending</p>
             </div>
           </div>
         </div>

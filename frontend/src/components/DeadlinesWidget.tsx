@@ -59,10 +59,10 @@ const SNOOZE_OPTIONS = [
 ];
 
 const urgencyConfig = {
-  overdue:  { bg: 'bg-rose-500/10',    border: 'border-rose-500/25',    dot: 'bg-rose-400',    text: 'text-rose-400',    badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
-  critical: { bg: 'bg-amber-500/10',   border: 'border-amber-500/25',   dot: 'bg-amber-400',   text: 'text-amber-400',   badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
-  warning:  { bg: 'bg-yellow-500/8',   border: 'border-yellow-500/20',  dot: 'bg-yellow-400',  text: 'text-yellow-400',  badge: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
-  safe:     { bg: 'bg-emerald-500/5',  border: 'border-white/8',        dot: 'bg-emerald-400', text: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+  overdue:  { bg: '#FFF0F0', border: 'var(--color-danger)', dot: 'var(--color-danger)', text: 'var(--color-danger)', badge: { bg: 'var(--color-danger)', color: '#fff' } },
+  critical: { bg: '#FFF7E6', border: 'var(--color-pending)', dot: 'var(--color-pending)', text: 'var(--color-pending)', badge: { bg: 'var(--color-pending)', color: '#fff' } },
+  warning:  { bg: '#FFFCDC', border: '#B8860B', dot: '#B8860B', text: '#7A6000', badge: { bg: 'var(--color-accent)', color: 'var(--color-ink)' } },
+  safe:     { bg: '#F0FFF5', border: 'var(--color-success)', dot: 'var(--color-success)', text: 'var(--color-success)', badge: { bg: 'var(--color-success)', color: '#fff' } },
 };
 
 interface ReminderCardProps {
@@ -114,40 +114,56 @@ const ReminderCard: React.FC<ReminderCardProps> = ({ reminder, onSnooze, onDone 
 
   return (
     <div
-      className={`relative rounded-xl p-3.5 border transition-all duration-300 hover:shadow-lg group ${cfg.bg} ${cfg.border}`}
+      className="relative p-3 transition-all duration-200 group"
       id={`reminder-card-${reminder.id}`}
+      style={{
+        backgroundColor: cfg.bg,
+        border: `2px solid ${cfg.border}`,
+        boxShadow: `3px 3px 0 ${cfg.border}`,
+      }}
     >
       {/* Urgency pulse for overdue / critical */}
       {(timeLeft.urgency === 'overdue' || timeLeft.urgency === 'critical') && (
-        <span className={`absolute top-3 right-3 h-2 w-2 rounded-full animate-ping ${cfg.dot} opacity-75`} />
+        <span
+          className="absolute top-2.5 right-2.5 h-2 w-2 animate-ping"
+          style={{ backgroundColor: cfg.dot }}
+        />
       )}
 
       <div className="flex items-start gap-2.5">
         {/* Status dot */}
-        <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${cfg.dot} ${timeLeft.isOverdue ? 'animate-pulse' : ''}`} />
+        <div
+          className={`mt-1.5 h-2 w-2 shrink-0 ${timeLeft.isOverdue ? 'animate-pulse' : ''}`}
+          style={{ backgroundColor: cfg.dot }}
+        />
 
         <div className="flex-1 min-w-0">
           {/* Subject */}
-          <p className="text-xs font-semibold text-white leading-snug line-clamp-1 mb-1">
+          <p className="text-xs font-bold leading-snug line-clamp-1 mb-1"
+            style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-body)' }}
+          >
             {reminder.email.subject}
           </p>
 
           {/* Sender + Deadline */}
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mb-2">
+          <div className="flex items-center gap-1.5 text-[10px] mb-2" style={{ color: '#666', fontFamily: 'var(--font-mono)' }}>
             <span className="truncate">{reminder.email.sender}</span>
-            <span className="text-white/20">·</span>
+            <span style={{ color: '#ccc' }}>·</span>
             <Calendar size={9} className="shrink-0" />
             <span className="shrink-0">{formattedDeadline}</span>
           </div>
 
           {/* Status + countdown */}
           <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${cfg.badge}`}>
+            <span
+              className="text-[10px] font-bold px-2 py-0.5"
+              style={{ backgroundColor: cfg.badge.bg, border: `1.5px solid var(--color-ink)`, color: cfg.badge.color, fontFamily: 'var(--font-body)' }}
+            >
               {timeLeft.isOverdue ? '⚠ OVERDUE' : `⏱ ${timeLeft.label} left`}
             </span>
 
             {reminder.status === 'SNOOZED' && (
-              <span className="text-[9px] text-gray-500 flex items-center gap-1">
+              <span className="text-[9px] flex items-center gap-1" style={{ color: '#888' }}>
                 <BellOff size={9} />
                 Snoozed
               </span>
@@ -163,7 +179,8 @@ const ReminderCard: React.FC<ReminderCardProps> = ({ reminder, onSnooze, onDone 
           <button
             id={`snooze-btn-${reminder.id}`}
             onClick={() => setShowSnooze(!showSnooze)}
-            className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-[10px] font-semibold border border-white/5 transition-all"
+            className="w-full flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
+            style={{ backgroundColor: 'var(--color-surface)', border: '2px solid var(--color-ink)', boxShadow: '2px 2px 0 var(--color-ink)', color: 'var(--color-ink)' }}
           >
             <Bell size={10} />
             Snooze
@@ -171,16 +188,20 @@ const ReminderCard: React.FC<ReminderCardProps> = ({ reminder, onSnooze, onDone 
           </button>
 
           {showSnooze && (
-            <div className="absolute bottom-full mb-1.5 left-0 right-0 bg-[#1a1d2e] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+            <div
+              className="absolute bottom-full mb-1.5 left-0 right-0 z-50 overflow-hidden"
+              style={{ backgroundColor: 'var(--color-surface)', border: '2px solid var(--color-ink)', boxShadow: '4px 4px 0 var(--color-ink)' }}
+            >
               {SNOOZE_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   id={`snooze-opt-${reminder.id}-${opt.value}`}
                   onClick={() => handleSnooze(opt.value)}
                   disabled={snoozingId === opt.value}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all disabled:opacity-50"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase transition-all disabled:opacity-50 hover:bg-yellow-50"
+                  style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-body)', borderBottom: '1px solid var(--color-ink)' }}
                 >
-                  <Zap size={9} className="text-amber-400" />
+                  <Zap size={9} style={{ color: 'var(--color-pending)' }} />
                   {snoozingId === opt.value ? 'Snoozing…' : opt.label}
                 </button>
               ))}
@@ -192,7 +213,8 @@ const ReminderCard: React.FC<ReminderCardProps> = ({ reminder, onSnooze, onDone 
         <button
           id={`done-btn-${reminder.id}`}
           onClick={handleDone}
-          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20 transition-all"
+          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all"
+          style={{ backgroundColor: 'var(--color-success)', border: '2px solid var(--color-ink)', boxShadow: '2px 2px 0 var(--color-ink)', color: '#fff', fontFamily: 'var(--font-body)' }}
         >
           <CheckCircle2 size={10} />
           Done
@@ -275,11 +297,14 @@ export const DeadlinesWidget: React.FC = () => {
     <div className="space-y-3" id="deadlines-widget">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <Clock size={15} className="text-indigo-400" />
+        <h3 className="text-sm font-black flex items-center gap-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-ink)' }}>
+          <Clock size={15} style={{ color: 'var(--color-accent-cta)' }} />
           <span>Upcoming Deadlines</span>
           {overdueCount > 0 && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/20 animate-pulse">
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 animate-pulse"
+              style={{ backgroundColor: 'var(--color-danger)', border: '1.5px solid var(--color-ink)', color: '#fff', fontFamily: 'var(--font-body)' }}
+            >
               {overdueCount} overdue
             </span>
           )}
@@ -287,7 +312,8 @@ export const DeadlinesWidget: React.FC = () => {
         <button
           id="refresh-deadlines-btn"
           onClick={fetchReminders}
-          className="text-[9px] text-gray-500 hover:text-indigo-400 transition-colors"
+          className="text-[9px] font-bold uppercase tracking-wider transition-colors"
+          style={{ color: '#888' }}
           title="Refresh"
         >
           ↻ refresh
@@ -295,22 +321,26 @@ export const DeadlinesWidget: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="glass rounded-2xl border border-white/5 overflow-hidden">
+      <div
+        className="overflow-hidden"
+        style={{ backgroundColor: 'var(--color-surface)', border: '3px solid var(--color-ink)', boxShadow: 'var(--shadow-offset)' }}
+      >
         {loading && (
           <div className="space-y-2.5 p-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 rounded-xl bg-white/5 animate-pulse" />
+              <div key={i} className="h-16 animate-pulse" style={{ backgroundColor: '#e8e5d8', border: '2px solid #ccc' }} />
             ))}
           </div>
         )}
 
         {!loading && error && (
           <div className="flex flex-col items-center justify-center py-8 px-4 text-center gap-2">
-            <AlertTriangle size={20} className="text-amber-400/50" />
-            <p className="text-xs text-gray-500">{error}</p>
+            <AlertTriangle size={20} style={{ color: 'var(--color-pending)' }} />
+            <p className="text-xs" style={{ color: '#666' }}>{error}</p>
             <button
               onClick={fetchReminders}
-              className="text-[10px] text-indigo-400 hover:underline"
+              className="text-[10px] font-bold uppercase tracking-wider"
+              style={{ color: 'var(--color-accent-cta)' }}
             >
               Try again
             </button>
@@ -319,18 +349,21 @@ export const DeadlinesWidget: React.FC = () => {
 
         {!loading && !error && reminders.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 px-4 text-center gap-2">
-            <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-              <CheckCircle2 size={18} className="text-emerald-400" />
+            <div
+              className="h-10 w-10 flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-success)', border: '2px solid var(--color-ink)' }}
+            >
+              <CheckCircle2 size={18} className="text-white" />
             </div>
-            <p className="text-xs font-semibold text-gray-300">No upcoming deadlines</p>
-            <p className="text-[10px] text-gray-500">
+            <p className="text-xs font-bold" style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-body)' }}>No upcoming deadlines</p>
+            <p className="text-[10px]" style={{ color: '#666' }}>
               Deadlines are automatically extracted from emails
             </p>
           </div>
         )}
 
         {!loading && !error && reminders.length > 0 && (
-          <div className="p-3 space-y-2.5 max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          <div className="p-3 space-y-2.5 max-h-[420px] overflow-y-auto">
             {reminders.map((reminder) => (
               <ReminderCard
                 key={reminder.id}

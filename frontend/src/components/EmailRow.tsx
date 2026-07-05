@@ -9,13 +9,13 @@ export interface EmailData {
   subject: string;
   body?: string;
   body_text?: string;
-  status?: string; // 'UNREAD' or 'READ' from Node backend
-  is_read?: boolean; // from Python backend
-  category?: string; // from Node backend
-  createdAt?: string; // from Node backend
-  received_at?: string; // from Python backend
-  received?: string; // from UI mock data
-  similarity?: number; // added similarity field
+  status?: string;
+  is_read?: boolean;
+  category?: string;
+  createdAt?: string;
+  received_at?: string;
+  received?: string;
+  similarity?: number;
   analysis?: {
     category: string;
     priority_score: number;
@@ -35,7 +35,6 @@ export const EmailRow = React.memo(function EmailRow({
   email,
   onClick,
 }: EmailRowProps) {
-  // Normalize fields between Node and Python backends
   const isUnread =
     email.is_read === false ||
     email.status === 'UNREAD' ||
@@ -61,9 +60,7 @@ export const EmailRow = React.memo(function EmailRow({
     email.body ||
     'No summary generated.';
 
-  // Normalize dates
-  const rawDate =
-    email.received_at || email.createdAt || email.received || 'Recently';
+  const rawDate = email.received_at || email.createdAt || email.received || 'Recently';
   const displayDate = React.useMemo(() => {
     if (!rawDate) return '';
     if (
@@ -75,104 +72,125 @@ export const EmailRow = React.memo(function EmailRow({
       return rawDate;
     try {
       const date = new Date(rawDate);
-      return date.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-      });
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     } catch {
       return rawDate;
     }
   }, [rawDate]);
 
-  // Visual categorization badge definitions
-  const getCategoryStyles = (cat: string) => {
+  // Neubrutalism: solid fill + black border, 0 radius
+  const getCategoryStyle = (cat: string): React.CSSProperties => {
     switch (cat) {
-      case 'urgent':
-        return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
-      case 'job':
-        return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
-      case 'finance':
-        return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-      case 'meeting':
-        return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
-      case 'otp':
-        return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-      case 'newsletter':
-        return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
-      case 'support':
-        return 'bg-sky-500/10 text-sky-400 border border-sky-500/20';
-      case 'work':
-        return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-      default:
-        return 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
+      case 'urgent':   return { backgroundColor: '#E85C4A', color: '#fff', border: '2px solid #111' };
+      case 'job':      return { backgroundColor: '#A855F7', color: '#fff', border: '2px solid #111' };
+      case 'finance':  return { backgroundColor: '#4CAF6D', color: '#fff', border: '2px solid #111' };
+      case 'meeting':  return { backgroundColor: '#6EC6E8', color: '#111', border: '2px solid #111' };
+      case 'otp':      return { backgroundColor: '#F4C542', color: '#111', border: '2px solid #111' };
+      case 'newsletter': return { backgroundColor: '#999', color: '#fff', border: '2px solid #111' };
+      case 'support':  return { backgroundColor: '#6EC6E8', color: '#111', border: '2px solid #111' };
+      case 'academic': return { backgroundColor: '#3B4CCA', color: '#fff', border: '2px solid #111' };
+      case 'work':     return { backgroundColor: '#3B4CCA', color: '#fff', border: '2px solid #111' };
+      default:         return { backgroundColor: '#F4C542', color: '#111', border: '2px solid #111' };
     }
+  };
+
+  const getPriorityStyle = (score: number): React.CSSProperties => {
+    if (score > 85) return { backgroundColor: '#E85C4A', color: '#fff', border: '2px solid #111' };
+    if (score > 65) return { backgroundColor: '#F4C542', color: '#111', border: '2px solid #111' };
+    return { backgroundColor: '#eee', color: '#555', border: '2px solid #aaa' };
   };
 
   return (
     <div
       onClick={() => onClick?.(email.id)}
-      className={`glass rounded-2xl p-4 border transition-all duration-200 cursor-pointer flex gap-4 ${
-        isUnread
-          ? 'border-indigo-500/20 bg-indigo-500/[0.02] shadow-[0_4px_20px_-2px_rgba(99,102,241,0.05)]'
-          : 'border-white/5 bg-white/[0.01]'
-      } hover:border-white/10 hover:bg-white/5 active:scale-[0.99]`}
+      className="p-4 cursor-pointer flex gap-4 transition-all duration-150"
+      style={{
+        backgroundColor: isUnread ? '#FFFDF5' : 'var(--color-surface)',
+        border: isUnread
+          ? '3px solid var(--color-ink)'
+          : '2px solid var(--color-ink)',
+        boxShadow: isUnread
+          ? 'var(--shadow-offset)'
+          : 'var(--shadow-offset-sm)',
+        marginBottom: '6px',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-hover)';
+        (e.currentTarget as HTMLElement).style.transform = 'translate(1px,1px)';
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.boxShadow = isUnread ? 'var(--shadow-offset)' : 'var(--shadow-offset-sm)';
+        el.style.transform = '';
+      }}
     >
-      {/* ── Unread Glow & Left Highlight Indicator ────────────────────────────────── */}
-      <div className="flex flex-col justify-center items-center shrink-0 w-2.5">
+      {/* Unread indicator strip */}
+      <div className="flex flex-col justify-center items-center shrink-0 w-3">
         {isUnread ? (
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-          </span>
+          <span
+            className="h-3 w-3"
+            style={{ backgroundColor: 'var(--color-accent-cta)', border: '2px solid var(--color-ink)' }}
+          />
         ) : (
-          <span className="h-1.5 w-1.5 rounded-full bg-white/10" />
+          <span
+            className="h-2.5 w-2.5"
+            style={{ backgroundColor: '#ddd', border: '2px solid #bbb' }}
+          />
         )}
       </div>
 
-      {/* ── Main Row Metadata & Information ──────────────────────────────────────── */}
+      {/* ── Main Row Metadata ─────────────────────────────────────────────────── */}
       <div className="flex-1 min-w-0">
-        {/* Row Header: Sender details, subject & date/score */}
+        {/* Row Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-4 mb-2">
-          {/* Left Side: Sender & Subject (stacked on mobile, inline on desktop) */}
           <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0 flex-1">
-            {/* Sender and mobile-only Date/Score */}
             <div className="flex items-center justify-between md:justify-start gap-2 min-w-0">
               <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className={`text-xs truncate ${isUnread ? 'font-bold text-white' : 'font-medium text-gray-300'}`}
+                  className="text-xs truncate"
+                  style={{
+                    fontWeight: isUnread ? 800 : 600,
+                    fontFamily: 'var(--font-body)',
+                    color: 'var(--color-ink)',
+                  }}
                 >
                   {senderName}
                 </span>
-                <span className="text-[10px] text-gray-500 truncate hidden sm:inline">
+                <span
+                  className="text-[10px] truncate hidden sm:inline"
+                  style={{ color: '#666', fontFamily: 'var(--font-mono)' }}
+                >
                   &lt;{senderEmail}&gt;
                 </span>
               </div>
 
-              {/* Mobile-only Date/Score (aligned top-right) */}
+              {/* Mobile-only Date/Score */}
               <div className="flex items-center gap-2 md:hidden shrink-0">
-                <span className="text-[10px] text-gray-500">{displayDate}</span>
                 <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold ${
-                    priorityScore > 85
-                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      : priorityScore > 65
-                        ? 'bg-indigo-500/10 text-indigo-400'
-                        : 'bg-white/5 text-gray-400'
-                  }`}
+                  className="text-[10px]"
+                  style={{ color: '#777', fontFamily: 'var(--font-mono)' }}
+                >
+                  {displayDate}
+                </span>
+                <span
+                  className="text-[9px] px-1.5 py-0.5 font-bold"
+                  style={getPriorityStyle(priorityScore)}
                 >
                   {priorityScore}
                 </span>
               </div>
             </div>
 
-            {/* Separator dot on desktop between sender and subject */}
-            <span className="hidden md:inline text-gray-600 text-[10px]">
-              •
-            </span>
+            <span className="hidden md:inline" style={{ color: '#aaa', fontSize: 10 }}>•</span>
 
             {/* Subject */}
             <h4
-              className={`text-xs truncate ${isUnread ? 'font-bold text-gray-100' : 'text-gray-300'}`}
+              className="text-xs truncate"
+              style={{
+                fontWeight: isUnread ? 700 : 500,
+                color: 'var(--color-ink)',
+                fontFamily: 'var(--font-body)',
+              }}
             >
               {subject}
             </h4>
@@ -180,49 +198,58 @@ export const EmailRow = React.memo(function EmailRow({
 
           {/* Desktop-only Date & Score */}
           <div className="hidden md:flex items-center gap-2.5 shrink-0">
-            <span className="text-[10px] text-gray-500">{displayDate}</span>
+            <span
+              className="text-[10px]"
+              style={{ color: '#777', fontFamily: 'var(--font-mono)' }}
+            >
+              {displayDate}
+            </span>
             {email.similarity !== undefined && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span
+                className="text-[9px] px-1.5 py-0.5 font-bold"
+                style={{ backgroundColor: 'var(--color-success)', color: '#fff', border: '2px solid #111' }}
+              >
                 {(email.similarity * 100).toFixed(0)}% Match
               </span>
             )}
             <span
-              className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold ${
-                priorityScore > 85
-                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                  : priorityScore > 65
-                    ? 'bg-indigo-500/10 text-indigo-400'
-                    : 'bg-white/5 text-gray-400'
-              }`}
+              className="text-[9px] px-1.5 py-0.5 font-bold"
+              style={getPriorityStyle(priorityScore)}
             >
               Score: {priorityScore}
             </span>
           </div>
         </div>
 
-        {/* Row Summary / Body Preview */}
-        <p className="text-[11px] text-gray-400 leading-normal line-clamp-2 pr-4 mb-3">
+        {/* Summary preview */}
+        <p
+          className="text-[11px] leading-normal line-clamp-2 pr-4 mb-3"
+          style={{ color: '#555', fontFamily: 'var(--font-body)' }}
+        >
           {summary}
         </p>
 
-        {/* Row Footer: AI Badges */}
+        {/* Row Footer: badges */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
-              className={`text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded ${getCategoryStyles(category)}`}
+              className="text-[9px] font-bold tracking-wider uppercase px-2 py-0.5"
+              style={getCategoryStyle(category)}
             >
               {category}
             </span>
             {priorityScore > 85 && (
-              <span className="text-[9px] font-semibold bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20 flex items-center gap-1">
-                <ShieldAlert size={10} />
-                <span>Urgent Action</span>
+              <span
+                className="text-[9px] font-bold px-2 py-0.5 flex items-center gap-1"
+                style={{ backgroundColor: '#E85C4A', color: '#fff', border: '2px solid #111' }}
+              >
+                <ShieldAlert size={9} />
+                <span>Urgent</span>
               </span>
             )}
           </div>
 
-          {/* Read/Unread Icon toggle visual */}
-          <div className="text-gray-500 hover:text-gray-300 transition-colors">
+          <div style={{ color: '#999' }}>
             {isUnread ? <Mail size={12} /> : <MailOpen size={12} />}
           </div>
         </div>

@@ -13,19 +13,38 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   icon: Icon,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-12 glass rounded-3xl border border-white/5 min-h-[320px] w-full">
-      {/* Semi-transparent and large icon wrapper */}
-      <div className="mb-4 text-gray-400/30 p-4 bg-white/[0.01] rounded-2xl ring-1 ring-white/5 flex items-center justify-center">
-        <Icon size={48} className="stroke-[1.25]" />
+    <div
+      className="flex flex-col items-center justify-center text-center p-12 min-h-[320px] w-full"
+      style={{
+        backgroundColor: 'var(--color-surface)',
+        border: '3px solid var(--color-ink)',
+        boxShadow: 'var(--shadow-offset)',
+      }}
+    >
+      {/* Icon block */}
+      <div
+        className="mb-5 p-4 flex items-center justify-center"
+        style={{
+          backgroundColor: 'var(--color-accent)',
+          border: '3px solid var(--color-ink)',
+          boxShadow: 'var(--shadow-offset-sm)',
+        }}
+      >
+        <Icon size={40} style={{ color: 'var(--color-ink)' }} />
       </div>
 
       {/* Title */}
-      <h3 className="text-sm font-semibold text-white mb-1.5">{title}</h3>
+      <h3
+        className="text-sm font-bold mb-2 uppercase tracking-wider"
+        style={{ fontFamily: 'var(--font-display)', color: 'var(--color-ink)' }}
+      >
+        {title}
+      </h3>
 
-      {/* Description utilizing var(--text-muted) */}
+      {/* Description */}
       <p
-        style={{ color: 'var(--text-muted)' }}
         className="text-xs max-w-[280px] leading-relaxed"
+        style={{ color: '#666', fontFamily: 'var(--font-body)' }}
       >
         {description}
       </p>

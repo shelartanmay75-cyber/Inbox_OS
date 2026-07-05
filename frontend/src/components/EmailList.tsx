@@ -325,11 +325,9 @@ export const EmailList: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
-  // AI Search states
   const [isAiSearch, setIsAiSearch] = useState<boolean>(false);
   const [aiResults, setAiResults] = useState<EmailData[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -337,149 +335,87 @@ export const EmailList: React.FC = () => {
   const { socket } = useSocket();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // TanStack Query to fetch list from API
   const { data, isLoading, isError, refetch, isFetching } = useQuery<
     EmailData[]
   >({
     queryKey: ['emails', categoryFilter, currentPage, pageSize],
     queryFn: async () => {
-      // Endpoint is either /api/emails (Node backend mapping) or /emails (Python FastAPI mapping)
       const url = `${API_BASE}/api/emails?limit=${pageSize}&offset=${(currentPage - 1) * pageSize}${
         categoryFilter !== 'all' ? `&category=${categoryFilter}` : ''
       }`;
-
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('API Endpoint not available');
-      }
-
+      if (!response.ok) throw new Error('API Endpoint not available');
       const json = await response.json();
-      if (
-        json &&
-        typeof json === 'object' &&
-        'emails' in json &&
-        Array.isArray(json.emails)
-      ) {
+      if (json && typeof json === 'object' && 'emails' in json && Array.isArray(json.emails)) {
         return json.emails;
       }
-      if (Array.isArray(json)) {
-        return json;
-      }
+      if (Array.isArray(json)) return json;
       throw new Error('Invalid API response format');
     },
-    // Fail silently to mock data fallback so frontend is functional out of the box
     gcTime: 1000 * 60 * 10,
     staleTime: 1000 * 60 * 5,
   });
 
-  // Listen for real-time incoming emails and refetch from backend
   useEffect(() => {
     if (!socket) return;
-
     const handleNewEmail = (payload: any) => {
       console.log('[WebSocket] Real-time email received:', payload);
       refetch();
     };
-
     socket.on('email.received', handleNewEmail);
-
-    return () => {
-      socket.off('email.received', handleNewEmail);
-    };
+    return () => { socket.off('email.received', handleNewEmail); };
   }, [socket, refetch]);
 
-  // Fallback to mock data if API fails
   const emailsList = data || FALLBACK_MOCK_EMAILS;
 
-  // Click handler for email selection (passed to EmailRow)
   const handleSelectEmail = useCallback((id: string) => {
     setSelectedEmailId(id);
   }, []);
 
-  // Back to list click handler (passed to EmailViewer)
   const handleBackToList = useCallback(() => {
     setSelectedEmailId(null);
   }, []);
 
-  // Filter local data (Search & Tabs)
   const filteredEmails = useMemo(() => {
     return emailsList.filter((email) => {
-      // 1. Tab category filter
       const matchesCategory =
         categoryFilter === 'all' ||
-        (
-          email.analysis?.category ||
-          email.category ||
-          'personal'
-        ).toLowerCase() === categoryFilter.toLowerCase();
-
-      // 2. Search query filter
-      const subjectMatches = email.subject
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+        (email.analysis?.category || email.category || 'personal').toLowerCase() === categoryFilter.toLowerCase();
+      const subjectMatches = email.subject.toLowerCase().includes(searchQuery.toLowerCase());
       const senderMatches =
         email.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (email.sender_name || '')
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
+        (email.sender_name || '').toLowerCase().includes(searchQuery.toLowerCase());
       const summaryMatches = (email.analysis?.summary || email.body_text || '')
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-
-      const matchesSearch = subjectMatches || senderMatches || summaryMatches;
-
-      return matchesCategory && matchesSearch;
+        .toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && (subjectMatches || senderMatches || summaryMatches);
     });
   }, [emailsList, categoryFilter, searchQuery]);
 
-  // Paging computations
   const totalItems = filteredEmails.length;
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(totalItems / pageSize));
-  }, [totalItems, pageSize]);
-
-  // Slice current page records
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalItems / pageSize)), [totalItems, pageSize]);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
-  const paginatedEmails = useMemo(() => {
-    return filteredEmails.slice(startIndex, endIndex);
-  }, [filteredEmails, startIndex, endIndex]);
+  const paginatedEmails = useMemo(() => filteredEmails.slice(startIndex, endIndex), [filteredEmails, startIndex, endIndex]);
 
-  // AI-powered search API query
   useEffect(() => {
-    if (!isAiSearch) {
-      setAiResults([]);
-      return;
-    }
-
-    if (!searchQuery.trim()) {
-      setAiResults([]);
-      return;
-    }
-
+    if (!isAiSearch) { setAiResults([]); return; }
+    if (!searchQuery.trim()) { setAiResults([]); return; }
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
         const response = await fetch(`${API_BASE}/api/rag/search`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: searchQuery, limit: pageSize }),
           credentials: 'include',
         });
         if (response.ok) {
           const data = await response.json();
           setAiResults(data);
-        } else {
-          console.error('Failed to fetch AI search results');
         }
       } catch (error) {
         console.error('Error fetching AI search results:', error);
@@ -487,32 +423,26 @@ export const EmailList: React.FC = () => {
         setIsSearching(false);
       }
     }, 500);
-
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, isAiSearch, pageSize]);
 
   const displayedEmails = useMemo(() => {
-    if (isAiSearch && searchQuery.trim()) {
-      return aiResults;
-    }
+    if (isAiSearch && searchQuery.trim()) return aiResults;
     return paginatedEmails;
   }, [isAiSearch, searchQuery, aiResults, paginatedEmails]);
 
   const handlePageChange = useCallback(
     (page: number) => {
-      if (page >= 1 && page <= totalPages) {
-        setCurrentPage(page);
-      }
+      if (page >= 1 && page <= totalPages) setCurrentPage(page);
     },
     [totalPages]
   );
 
   const handleCategoryChange = useCallback((catId: string) => {
     setCategoryFilter(catId);
-    setCurrentPage(1); // Reset page on category filter change
+    setCurrentPage(1);
   }, []);
 
-  // Pull-to-refresh state
   const [pullStartY, setPullStartY] = useState<number | null>(null);
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
@@ -523,38 +453,42 @@ export const EmailList: React.FC = () => {
       setIsPulling(true);
     }
   };
-
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isPulling || pullStartY === null) return;
     const diff = e.touches[0].clientY - pullStartY;
-    if (diff > 0) {
-      const resistance = Math.min(diff / 2, 120); // simple resistance effect
-      setPullDistance(resistance);
-    }
+    if (diff > 0) setPullDistance(Math.min(diff / 2, 120));
   };
-
   const handleTouchEnd = () => {
-    if (isPulling) {
-      if (pullDistance > 60) {
-        // Trigger data refetch
-        refetch();
-      }
-    }
-    // Reset pull state
+    if (isPulling && pullDistance > 60) refetch();
     setPullStartY(null);
     setIsPulling(false);
     setPullDistance(0);
   };
 
-  // Intercept rendering if an email is selected
   if (selectedEmailId) {
     return <EmailViewer emailId={selectedEmailId} onBack={handleBackToList} />;
   }
 
+  // Neubrut button helper
+  const neuTabBtn = (isActive: boolean): React.CSSProperties => ({
+    backgroundColor: isActive ? 'var(--color-ink)' : 'var(--color-surface)',
+    color: isActive ? '#fff' : 'var(--color-ink)',
+    border: '2px solid var(--color-ink)',
+    boxShadow: isActive ? 'none' : 'var(--shadow-offset-sm)',
+    fontFamily: 'var(--font-body)',
+    fontWeight: 700,
+    fontSize: '11px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+    padding: '6px 14px',
+    cursor: 'pointer',
+    transition: 'box-shadow 0.1s, transform 0.1s',
+  });
+
   return (
     <div
       ref={wrapperRef}
-      className="space-y-6"
+      className="space-y-5"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -565,24 +499,32 @@ export const EmailList: React.FC = () => {
         className="flex justify-center items-center h-8 transition-opacity duration-200"
         style={{ opacity: pullDistance > 0 ? 1 : 0 }}
       >
-        <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} />
+        <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} style={{ color: 'var(--color-ink)' }} />
       </div>
 
-      {/* ── Filter Tabs & Options Header ────────────────────────────────────────── */}
+      {/* ── Filter Tabs & Options Header ───────────────────────────────────── */}
       <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
         {/* Horizontal Category Tabs */}
-        <div className="flex flex-wrap gap-2 overflow-x-auto w-full xl:w-auto pb-1 xl:pb-0 scrollbar-none">
+        <div className="flex flex-wrap gap-1.5 overflow-x-auto w-full xl:w-auto pb-1 xl:pb-0">
           {CATEGORIES.map((cat) => {
             const isActive = categoryFilter === cat.id;
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shrink-0 font-medium ${
-                  isActive
-                    ? 'bg-indigo-600 text-white font-semibold glow-accent'
-                    : 'bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10'
-                }`}
+                style={neuTabBtn(isActive)}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-hover)';
+                    (e.currentTarget as HTMLElement).style.transform = 'translate(2px,2px)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-sm)';
+                    (e.currentTarget as HTMLElement).style.transform = '';
+                  }
+                }}
               >
                 {cat.label}
               </button>
@@ -590,9 +532,17 @@ export const EmailList: React.FC = () => {
           })}
         </div>
 
-        {/* Local Search Input & Options */}
-        <div className="flex items-center gap-3 w-full xl:w-auto shrink-0">
-          <label className="flex items-center gap-2 cursor-pointer bg-white/5 border border-white/5 rounded-xl px-3.5 py-2.5 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-all select-none">
+        {/* Search & Options */}
+        <div className="flex items-center gap-2 w-full xl:w-auto shrink-0">
+          <label
+            className="flex items-center gap-2 cursor-pointer select-none px-3 py-2 font-bold text-xs uppercase tracking-wider"
+            style={{
+              backgroundColor: isAiSearch ? 'var(--color-accent-cta)' : 'var(--color-surface)',
+              color: isAiSearch ? '#fff' : 'var(--color-ink)',
+              border: '2px solid var(--color-ink)',
+              boxShadow: 'var(--shadow-offset-sm)',
+            }}
+          >
             <input
               type="checkbox"
               checked={isAiSearch}
@@ -600,27 +550,26 @@ export const EmailList: React.FC = () => {
                 setIsAiSearch(e.target.checked);
                 setCurrentPage(1);
               }}
-              className="rounded border-white/10 text-indigo-600 focus:ring-indigo-500 bg-white/5 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
+              className="w-3.5 h-3.5 cursor-pointer"
             />
-            <span className="font-medium">AI Search</span>
+            <span>AI Search</span>
           </label>
 
-          <div className="relative flex-1 xl:flex-none xl:w-[260px]">
+          <div className="relative flex-1 xl:flex-none xl:w-[240px]">
             <Search
               size={14}
-              className="absolute left-3.5 top-3.5 text-gray-400"
+              className="absolute left-3 top-3"
+              style={{ color: '#777' }}
             />
             <input
               type="text"
-              placeholder={
-                isAiSearch ? 'AI-powered search...' : 'Search local inbox...'
-              }
+              placeholder={isAiSearch ? 'AI-powered search...' : 'Search local inbox...'}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-white/5 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/25 transition-all duration-200"
+              className="neu-input pl-9 text-xs"
             />
           </div>
 
@@ -629,7 +578,20 @@ export const EmailList: React.FC = () => {
             disabled={isLoading || isFetching}
             title="Refresh Ingests"
             aria-label="Refresh Ingests"
-            className="p-3 rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 shrink-0"
+            className="p-2.5 flex items-center justify-center transition-all disabled:opacity-50 shrink-0"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '2px solid var(--color-ink)',
+              boxShadow: 'var(--shadow-offset-sm)',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+              (e.currentTarget as HTMLElement).style.transform = 'translate(2px,2px)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-sm)';
+              (e.currentTarget as HTMLElement).style.transform = '';
+            }}
           >
             <RefreshCw
               size={14}
@@ -639,23 +601,47 @@ export const EmailList: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Inbox List Display ─────────────────────────────────────────────────── */}
+      {/* ── Inbox List Display ──────────────────────────────────────────────── */}
       {isLoading ? (
         <EmailSkeletonList count={pageSize} />
       ) : isError ? (
-        <div className="glass rounded-2xl p-8 border border-rose-500/20 text-center flex flex-col items-center justify-center gap-3">
-          <AlertCircle size={32} className="text-rose-400" />
+        <div
+          className="p-8 text-center flex flex-col items-center justify-center gap-3"
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '3px solid var(--color-danger)',
+            boxShadow: '6px 6px 0px var(--color-danger)',
+          }}
+        >
+          <AlertCircle size={32} style={{ color: 'var(--color-danger)' }} />
           <div>
-            <h4 className="text-sm font-semibold text-white">
+            <h4
+              className="text-sm font-bold uppercase tracking-wide"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-ink)' }}
+            >
               Pipeline Sync Error
             </h4>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs mt-1" style={{ color: '#666' }}>
               Failed to read email list from decision API.
             </p>
           </div>
           <button
             onClick={() => refetch()}
-            className="px-4 py-2 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold border border-rose-500/20 transition-all"
+            className="px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all"
+            style={{
+              backgroundColor: 'var(--color-danger)',
+              border: '2px solid var(--color-ink)',
+              boxShadow: 'var(--shadow-offset-sm)',
+              color: '#fff',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+              (e.currentTarget as HTMLElement).style.transform = 'translate(4px,4px)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-sm)';
+              (e.currentTarget as HTMLElement).style.transform = '';
+            }}
           >
             Retry Connection
           </button>
@@ -667,14 +653,20 @@ export const EmailList: React.FC = () => {
           icon={Inbox}
         />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-0">
           {isSearching && (
-            <div className="text-center py-4 text-xs text-gray-400 flex items-center justify-center gap-2 bg-white/5 rounded-2xl border border-white/5 mb-3 w-full">
-              <RefreshCw size={14} className="animate-spin text-indigo-400" />
+            <div
+              className="text-center py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 mb-2"
+              style={{
+                backgroundColor: 'var(--color-accent)',
+                border: '2px solid var(--color-ink)',
+                color: 'var(--color-ink)',
+              }}
+            >
+              <RefreshCw size={13} className="animate-spin" />
               <span>Analyzing semantics...</span>
             </div>
           )}
-          {/* Email row renders */}
           {displayedEmails.map((email) => (
             <EmailRow
               key={email.id}
@@ -685,43 +677,48 @@ export const EmailList: React.FC = () => {
         </div>
       )}
 
-      {/* ── Pagination Footer Controls ────────────────────────────────────────── */}
+      {/* ── Pagination Footer Controls ─────────────────────────────────────── */}
       {filteredEmails.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between px-2 pt-4 border-t border-white/5 text-xs text-gray-400">
+        <div
+          className="flex flex-col sm:flex-row gap-4 items-center justify-between px-2 pt-4"
+          style={{
+            borderTop: '3px solid var(--color-ink)',
+            color: '#555',
+            fontSize: '12px',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
           {/* Records description */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 font-mono text-xs" style={{ fontFamily: 'var(--font-mono)', color: '#666' }}>
             <span>Showing</span>
-            <span className="font-semibold text-gray-200">
-              {startIndex + 1}
-            </span>
+            <span className="font-bold" style={{ color: 'var(--color-ink)' }}>{startIndex + 1}</span>
             <span>to</span>
-            <span className="font-semibold text-gray-200">{endIndex}</span>
+            <span className="font-bold" style={{ color: 'var(--color-ink)' }}>{endIndex}</span>
             <span>of</span>
-            <span className="font-semibold text-gray-200">{totalItems}</span>
+            <span className="font-bold" style={{ color: 'var(--color-ink)' }}>{totalItems}</span>
             <span>records</span>
           </div>
 
           {/* Navigation Controls */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Page Size Selector */}
             <div className="flex items-center gap-2">
-              <span>Limit:</span>
+              <span className="text-xs font-bold uppercase" style={{ color: 'var(--color-ink)' }}>Limit:</span>
               <select
                 value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                style={{
+                  backgroundColor: 'var(--color-surface)',
+                  border: '2px solid var(--color-ink)',
+                  color: 'var(--color-ink)',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-body)',
+                  fontWeight: 700,
                 }}
-                className="bg-white/5 border border-white/5 text-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500/40 text-xs cursor-pointer font-medium"
               >
                 {[5, 10, 25, 50].map((size) => (
-                  <option
-                    key={size}
-                    value={size}
-                    className="bg-bg-elevated text-gray-200"
-                  >
-                    {size} rows
-                  </option>
+                  <option key={size} value={size}>{size} rows</option>
                 ))}
               </select>
             </div>
@@ -732,14 +729,30 @@ export const EmailList: React.FC = () => {
                 disabled={currentPage === 1}
                 onClick={() => handlePageChange(currentPage - 1)}
                 aria-label="Previous page"
-                className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+                className="p-2 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                style={{
+                  backgroundColor: 'var(--color-surface)',
+                  border: '2px solid var(--color-ink)',
+                  boxShadow: 'var(--shadow-offset-sm)',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                  (e.currentTarget as HTMLElement).style.transform = 'translate(2px,2px)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-sm)';
+                  (e.currentTarget as HTMLElement).style.transform = '';
+                }}
               >
                 <ChevronLeft size={14} />
               </button>
 
-              <div className="flex items-center gap-1 font-semibold text-gray-200 px-1">
-                <span>Page</span>
-                <span className="text-white font-bold">{currentPage}</span>
+              <div
+                className="flex items-center gap-1 font-bold px-2 text-xs"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink)' }}
+              >
+                <span>Pg</span>
+                <span>{currentPage}</span>
                 <span>/</span>
                 <span>{totalPages}</span>
               </div>
@@ -748,7 +761,20 @@ export const EmailList: React.FC = () => {
                 disabled={currentPage === totalPages}
                 onClick={() => handlePageChange(currentPage + 1)}
                 aria-label="Next page"
-                className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+                className="p-2 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                style={{
+                  backgroundColor: 'var(--color-surface)',
+                  border: '2px solid var(--color-ink)',
+                  boxShadow: 'var(--shadow-offset-sm)',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                  (e.currentTarget as HTMLElement).style.transform = 'translate(2px,2px)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-sm)';
+                  (e.currentTarget as HTMLElement).style.transform = '';
+                }}
               >
                 <ChevronRight size={14} />
               </button>

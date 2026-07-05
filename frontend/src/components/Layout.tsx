@@ -16,9 +16,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="flex min-h-screen bg-bg-base text-gray-100 font-sans selection:bg-indigo-500/30 selection:text-white">
+    <div className="flex min-h-screen font-sans" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-ink)' }}>
       {/* ── Left Sidebar (Desktop) ────────────────────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-[260px] glass border-r border-white/5 h-screen sticky top-0 z-30 shrink-0">
+      <aside
+        className="hidden md:flex flex-col w-[260px] h-screen sticky top-0 z-30 shrink-0"
+        style={{
+          backgroundColor: 'var(--color-surface)',
+          borderRight: '3px solid var(--color-ink)',
+        }}
+      >
         <SidebarNav />
       </aside>
 
@@ -28,13 +34,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         {/* Backdrop overlay */}
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 bg-black/50 transition-opacity duration-300"
           onClick={() => setIsMobileMenuOpen(false)}
         />
 
         {/* Mobile drawer container */}
         <aside
-          className={`relative flex flex-col w-[260px] bg-bg-base border-r border-white/10 h-full p-4 z-50 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`relative flex flex-col w-[260px] h-full p-4 z-50 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            borderRight: '3px solid var(--color-ink)',
+          }}
         >
           <SidebarNav
             isMobile
@@ -46,11 +56,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* ── Main Content Area ────────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Main Navbar Header */}
-        <header className="glass border-b border-white/5 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+        <header
+          className="px-4 md:px-8 py-3 flex items-center justify-between sticky top-0 z-20"
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            borderBottom: '3px solid var(--color-ink)',
+            boxShadow: '0 3px 0 var(--color-ink)',
+          }}
+        >
           {/* Mobile menu trigger */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden p-3 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="md:hidden p-2 flex items-center justify-center transition-colors min-h-[44px] min-w-[44px]"
+            style={{ border: '2px solid var(--color-ink)' }}
             aria-label="Open mobile menu"
           >
             <Menu size={20} />
@@ -58,61 +76,90 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Search Bar */}
           <div className="hidden sm:flex items-center w-full max-w-[380px] relative">
-            <Search size={16} className="absolute left-3.5 text-gray-400" />
+            <Search size={15} className="absolute left-3" style={{ color: '#666' }} />
             <input
               type="text"
               placeholder="Search actions, emails, rules..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-100 placeholder-gray-400 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/25 transition-all duration-200"
+              className="neu-input pl-10 text-xs"
+              style={{ fontFamily: 'var(--font-body)' }}
             />
           </div>
 
           {/* Right Header Navigation */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Dark Mode toggle visual */}
             <button
-              className="p-3 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Toggle dark mode"
+              className="p-2 flex items-center justify-center transition-colors min-h-[44px] min-w-[44px]"
+              style={{ border: '2px solid var(--color-ink)' }}
+              aria-label="Toggle theme"
             >
-              <Moon size={18} />
+              <Moon size={16} />
             </button>
 
             {/* Notification Bell */}
             <button
-              className="p-3 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors relative min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-2 flex items-center justify-center transition-colors relative min-h-[44px] min-w-[44px]"
+              style={{ border: '2px solid var(--color-ink)' }}
               aria-label="Notifications"
             >
-              <Bell size={18} />
-              <span className="absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+              <Bell size={16} />
+              <span
+                className="absolute top-1.5 right-1.5 h-2 w-2"
+                style={{ backgroundColor: 'var(--color-danger)', border: '1.5px solid var(--color-ink)' }}
+              />
             </button>
 
-            <div className="h-6 w-px bg-white/10 hidden sm:block"></div>
+            <div className="w-px h-6 bg-neu-ink opacity-20" />
 
             {/* User Profile Info */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="hidden sm:block text-right">
-                <p className="text-xs font-semibold text-gray-200 truncate max-w-[120px]">
+                <p className="text-xs font-bold truncate max-w-[120px]" style={{ fontFamily: 'var(--font-body)' }}>
                   {user?.email ? user.email.split('@')[0] : 'User'}
                 </p>
-                <p className="text-[10px] text-gray-500 truncate max-w-[120px]">
+                <p className="text-[10px] truncate max-w-[120px]" style={{ color: '#666' }}>
                   {user?.email || 'offline'}
                 </p>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-md border border-white/10">
+              <div
+                className="w-9 h-9 flex items-center justify-center text-xs font-bold"
+                style={{
+                  backgroundColor: 'var(--color-accent-cta)',
+                  border: '2px solid var(--color-ink)',
+                  color: '#fff',
+                  fontFamily: 'var(--font-display)',
+                }}
+              >
                 {user?.email ? user.email.substring(0, 2).toUpperCase() : 'OS'}
               </div>
             </div>
 
-            <div className="h-6 w-px bg-white/10"></div>
+            <div className="w-px h-6 bg-neu-ink opacity-20" />
 
             {/* Logout Button */}
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-bold transition-all duration-200 active:scale-95 min-h-[40px] md:min-h-0"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all uppercase tracking-wider min-h-[40px]"
+              style={{
+                backgroundColor: 'var(--color-danger)',
+                border: '2px solid var(--color-ink)',
+                color: '#fff',
+                boxShadow: 'var(--shadow-offset-sm)',
+                fontFamily: 'var(--font-body)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-hover)';
+                (e.currentTarget as HTMLElement).style.transform = 'translate(1px,1px)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-offset-sm)';
+                (e.currentTarget as HTMLElement).style.transform = '';
+              }}
               title="Log Out"
             >
-              <LogOut size={14} />
+              <LogOut size={13} />
               <span className="hidden sm:inline">Logout</span>
             </button>
           </div>

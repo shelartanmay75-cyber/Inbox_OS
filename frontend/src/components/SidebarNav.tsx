@@ -5,11 +5,10 @@ import {
   CheckSquare,
   Zap,
   Settings,
-  Sparkles,
   Activity,
   Plus,
   X,
-  BarChart3,
+  Sparkles,
 } from 'lucide-react';
 import { useCompose } from '../context/ComposeContext';
 
@@ -29,34 +28,41 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     {
       path: '/dashboard',
       label: 'Inbox',
-      icon: <Inbox size={18} />,
+      icon: <Inbox size={17} />,
       count: 14,
     },
     {
       path: '/dashboard/tasks',
       label: 'Dashboard Tasks',
-      icon: <CheckSquare size={18} />,
+      icon: <CheckSquare size={17} />,
       count: 5,
     },
     {
       path: '/dashboard/rules',
       label: 'Routing Rules',
-      icon: <Zap size={18} />,
+      icon: <Zap size={17} />,
     },
     {
-      path: '/dashboard/analytics',
-      label: 'Analytics',
-      icon: <BarChart3 size={18} />,
+      path: '/dashboard/settings?tab=integrations',
+      label: 'Integrations',
+      icon: <Activity size={17} />,
     },
     {
       path: '/dashboard/settings',
       label: 'Preferences',
-      icon: <Settings size={18} />,
+      icon: <Settings size={17} />,
     },
   ];
 
-  // Helper to determine if the navigation item path is currently active
   const isItemActive = (path: string) => {
+    if (path.includes('tab=integrations')) {
+      const searchParams = new URLSearchParams(location.search);
+      return location.pathname.startsWith('/dashboard/settings') && searchParams.get('tab') === 'integrations';
+    }
+    if (path === '/dashboard/settings') {
+      const searchParams = new URLSearchParams(location.search);
+      return location.pathname.startsWith('/dashboard/settings') && searchParams.get('tab') !== 'integrations';
+    }
     if (path === '/dashboard') {
       return (
         location.pathname === '/dashboard' ||
@@ -73,20 +79,31 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full flex-1">
+    <div className="flex flex-col h-full flex-1" style={{ backgroundColor: 'var(--color-surface)' }}>
       {/* ── Brand Logo Header ─────────────────────────────────────────────────── */}
-      <div
-        className={`flex items-center justify-between ${isMobile ? 'pb-6 border-b border-white/5 mb-4' : 'px-6 py-6 border-b border-white/5'}`}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 glow-accent shrink-0">
-            <Sparkles size={18} className="text-white" />
+      <div className={`flex items-center justify-between ${isMobile ? 'pb-4 mb-2' : 'px-5 py-5'}`}>
+        <div className="flex items-center gap-2.5">
+          {/* Logo mark: solid yellow box with black sparkles */}
+          <div
+            className="flex items-center justify-center w-9 h-9 shrink-0"
+            style={{
+              backgroundColor: 'var(--color-accent)',
+              border: '3px solid var(--color-ink)',
+            }}
+          >
+            <Sparkles size={18} className="text-black" fill="currentColor" />
           </div>
           <div className="text-left">
-            <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-white via-gray-100 to-gray-400 bg-clip-text text-transparent leading-none">
+            <h1
+              className="text-base leading-none font-black"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-ink)' }}
+            >
               InboxOS
             </h1>
-            <span className="text-[10px] text-indigo-400/80 font-semibold tracking-wider uppercase block mt-1">
+            <span
+              className="text-[9px] font-black tracking-widest uppercase block mt-0.5"
+              style={{ color: 'var(--color-ink)', opacity: 0.8 }}
+            >
               Decision Layer
             </span>
           </div>
@@ -95,22 +112,38 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         {isMobile && onCloseMobileMenu && (
           <button
             onClick={onCloseMobileMenu}
-            className="p-3 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 flex items-center justify-center min-h-[44px] min-w-[44px]"
+            style={{ border: '3px solid var(--color-ink)' }}
             aria-label="Close menu"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         )}
       </div>
 
       {/* ── Compose Action Button ──────────────────────────────────────────────── */}
-      <div className={`${isMobile ? 'py-2 mb-4' : 'px-4 py-4'}`}>
+      <div className={`${isMobile ? 'py-2 mb-2' : 'px-4 py-3'}`}>
         <button
           onClick={() => {
             openCompose();
             handleLinkClick();
           }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-200 glow-accent-hover active:scale-[0.98] min-h-[44px]"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wider min-h-[44px] transition-all"
+          style={{
+            backgroundColor: 'var(--color-accent)',
+            border: '3px solid var(--color-ink)',
+            color: 'var(--color-ink)',
+            boxShadow: '3px 3px 0 var(--color-ink)',
+            fontFamily: 'var(--font-body)',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+            (e.currentTarget as HTMLElement).style.transform = 'translate(3px,3px)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.boxShadow = '3px 3px 0 var(--color-ink)';
+            (e.currentTarget as HTMLElement).style.transform = '';
+          }}
         >
           <Plus size={16} />
           <span>Compose Action</span>
@@ -118,10 +151,11 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       </div>
 
       {/* ── Navigation Links ─────────────────────────────────────────────────── */}
-      <nav
-        className={`flex-1 space-y-1.5 overflow-y-auto text-left ${isMobile ? '' : 'px-3'}`}
-      >
-        <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-4 mb-2">
+      <nav className={`flex-1 space-y-1.5 overflow-y-auto text-left ${isMobile ? '' : 'px-3'}`}>
+        <div
+          className="text-[9px] font-black uppercase tracking-widest px-4 mb-2 pt-1"
+          style={{ color: '#888', fontFamily: 'var(--font-body)' }}
+        >
           Workspace
         </div>
         {navigationItems.map((item) => {
@@ -131,25 +165,42 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               key={item.path}
               to={item.path}
               onClick={handleLinkClick}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 border-l-4 min-h-[44px] ${
-                active
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/20 text-white border-accent shadow-[0_4px_12px_rgba(99,102,241,0.15)] font-semibold'
-                  : 'text-gray-400 hover:text-gray-100 hover:bg-white/5 border-transparent'
-              }`}
+              className="w-full flex items-center justify-between px-4 py-2.5 transition-all duration-100 font-bold text-xs min-h-[44px]"
+              style={{
+                backgroundColor: active ? 'var(--color-accent)' : 'transparent',
+                color: 'var(--color-ink)',
+                border: `3px solid ${active ? 'var(--color-ink)' : 'transparent'}`,
+                boxShadow: active ? '3px 3px 0 var(--color-ink)' : 'none',
+                fontFamily: 'var(--font-body)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                marginBottom: '2px',
+              }}
+              onMouseEnter={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '#f7f6f0';
+                  (e.currentTarget as HTMLElement).style.border = '3px solid var(--color-ink)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                  (e.currentTarget as HTMLElement).style.border = '3px solid transparent';
+                }
+              }}
             >
               <div className="flex items-center gap-3">
-                <span className={`${active ? 'text-accent' : 'text-gray-400'}`}>
-                  {item.icon}
-                </span>
-                <span className="text-sm">{item.label}</span>
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
               </div>
               {item.count !== undefined && item.count > 0 && (
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                    active
-                      ? 'bg-accent text-white'
-                      : 'bg-white/10 text-gray-300'
-                  }`}
+                  className="text-[9px] px-2 py-0.5 font-black border"
+                  style={{
+                    backgroundColor: active ? 'var(--color-ink)' : '#f3f1e9',
+                    color: active ? '#FFFFFF' : 'var(--color-ink)',
+                    borderColor: 'var(--color-ink)',
+                  }}
                 >
                   {item.count}
                 </span>
@@ -160,28 +211,52 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       </nav>
 
       {/* ── System Status Card ────────────────────────────────────────────────── */}
-      <div
-        className={`border-t border-white/5 ${isMobile ? 'pt-4 mt-4' : 'p-4'}`}
-      >
-        <div className="glass-panel rounded-xl p-3 border border-white/5 text-left">
+      <div className={`${isMobile ? 'pt-3 mt-3' : 'p-4'}`}>
+        <div
+          className="p-3.5 text-left"
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '3px solid var(--color-ink)',
+            boxShadow: '3px 3px 0 var(--color-ink)',
+          }}
+        >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="relative flex h-2.5 w-2.5">
+                <span
+                  className="animate-ping absolute inline-flex h-full w-full opacity-75"
+                  style={{ backgroundColor: 'var(--color-success)' }}
+                />
+                <span
+                  className="relative inline-flex h-2.5 w-2.5"
+                  style={{ backgroundColor: 'var(--color-success)' }}
+                />
               </span>
-              <span className="text-[11px] font-medium text-gray-300">
+              <span
+                className="text-[10px] font-black uppercase tracking-wider"
+                style={{ fontFamily: 'var(--font-body)', color: 'var(--color-ink)' }}
+              >
                 AI Agent Active
               </span>
             </div>
-            <Activity size={12} className="text-indigo-400" />
+            <Activity size={11} style={{ color: 'var(--color-accent-cta)' }} />
           </div>
 
-          <p className="text-[10px] text-gray-400 leading-normal mb-2">
+          <p
+            className="text-[10px] font-bold leading-normal mb-2.5"
+            style={{ color: '#666', fontFamily: 'var(--font-body)' }}
+          >
             Analyzing incoming streams automatically. Gmail linked.
           </p>
 
-          <div className="flex items-center justify-between text-[9px] text-gray-500 border-t border-white/5 pt-2">
+          <div
+            className="flex items-center justify-between text-[9px] font-mono pt-2"
+            style={{
+              borderTop: '2px solid var(--color-ink)',
+              fontFamily: 'var(--font-mono)',
+              color: '#888',
+            }}
+          >
             <span>Provider: OpenAI</span>
             <span>v1.0.0</span>
           </div>
