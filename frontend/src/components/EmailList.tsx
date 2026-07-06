@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Search,
   RefreshCw,
+  Mail,
 } from 'lucide-react';
 import { EmailViewer } from './EmailViewer';
 import { EmptyState } from './EmptyState';
@@ -34,7 +35,15 @@ const CATEGORIES = [
   { id: 'academic', label: 'Academic' },
 ];
 
-export const EmailList: React.FC = () => {
+interface EmailListProps {
+  gmailConnected?: boolean;
+  onConnectGmail?: () => void;
+}
+
+export const EmailList: React.FC<EmailListProps> = ({
+  gmailConnected = true,
+  onConnectGmail,
+}) => {
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -358,6 +367,52 @@ export const EmailList: React.FC = () => {
             }}
           >
             Retry Connection
+          </button>
+        </div>
+      ) : !gmailConnected ? (
+        <div
+          className="p-8 text-center flex flex-col items-center justify-center gap-4 rounded-[22px] py-16"
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
+          <div
+            className="w-16 h-16 flex items-center justify-center rounded-full"
+            style={{
+              backgroundColor: 'rgba(219,68,85,.10)',
+              color: 'var(--color-danger)',
+            }}
+          >
+            <Mail size={32} />
+          </div>
+          <div>
+            <h4 className="text-[16px] font-bold text-black" style={{ color: 'var(--color-ink)' }}>
+              Connect Your Gmail Account
+            </h4>
+            <p className="text-[13px] mt-1.5 max-w-[400px] mx-auto text-gray-600" style={{ color: 'var(--color-muted)' }}>
+              InboxOS needs authorization to read and sync your emails. Connect your Google account to get started.
+            </p>
+          </div>
+          <button
+            onClick={onConnectGmail}
+            className="px-5 py-2.5 text-[13px] font-semibold rounded-[10px] transition-all"
+            style={{
+              backgroundColor: 'var(--color-primary)',
+              color: '#fff',
+              boxShadow: '0 4px 14px rgba(93,107,47,.25)',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(93,107,47,.35)';
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(93,107,47,.25)';
+              (e.currentTarget as HTMLElement).style.transform = '';
+            }}
+          >
+            Connect Gmail
           </button>
         </div>
       ) : paginatedEmails.length === 0 ? (

@@ -46,43 +46,24 @@ const DashboardContent: React.FC = () => {
   const { socket } = useSocket();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const { refetch: refetchStats } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      const res = await fetch(`${API_BASE}/api/dashboard/stats`, {
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to fetch stats');
-      return res.json();
-    },
-    refetchInterval: 10000,
-  });
-
   useEffect(() => {
     if (!socket) return;
 
     socket.on('task.created', (data: any) => {
       setToastMessage(`New Task Extracted: ${data.title}`);
       setTimeout(() => setToastMessage(null), 4000);
-      refetchStats();
     });
 
     socket.on('rule.executed', (data: any) => {
       setToastMessage(`Rule Executed: "${data.ruleName}" (${data.status})`);
       setTimeout(() => setToastMessage(null), 4000);
-      refetchStats();
-    });
-
-    socket.on('email.received', () => {
-      refetchStats();
     });
 
     return () => {
       socket.off('task.created');
       socket.off('rule.executed');
-      socket.off('email.received');
     };
-  }, [socket, refetchStats]);
+  }, [socket]);
 
   const getActiveTab = () => {
     const path = location.pathname;
@@ -229,7 +210,7 @@ const DashboardContent: React.FC = () => {
 
   // Load Gmail connection status from backend
   useEffect(() => {
-    if (activeTab !== 'settings') return;
+    if (activeTab !== 'settings' && activeTab !== 'inbox') return;
     const fetchGmailStatus = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/integrations/gmail/status`, {
@@ -276,6 +257,11 @@ const DashboardContent: React.FC = () => {
   };
 
   const handleSyncGmail = async () => {
+    if (!gmailConnected) {
+      alert('Gmail is not connected yet. Redirecting you to Google authorization to link your Gmail account...');
+      handleConnectGmail();
+      return;
+    }
     setGmailSyncing(true);
     try {
       const res = await fetch(`${API_BASE}/api/integrations/gmail/sync`, {
@@ -286,7 +272,6 @@ const DashboardContent: React.FC = () => {
         const data = await res.json();
         setToastMessage(`Synced ${data.synced} new email(s) from Gmail`);
         setTimeout(() => setToastMessage(null), 4000);
-        refetchStats();
         queryClient.invalidateQueries({ queryKey: ['emails'] });
       } else {
         const err = await res.json();
@@ -1518,7 +1503,7 @@ const DashboardContent: React.FC = () => {
 
         {/* Full-width Email list */}
         <div className="w-full">
-          <EmailList />
+          <EmailList gmailConnected={gmailConnected} onConnectGmail={handleConnectGmail} />
         </div>
       </div>
     </Layout>
