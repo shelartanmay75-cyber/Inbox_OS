@@ -69,8 +69,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # Wait for database, run prisma schema sync, then start backend server
-    command: npm run start
+    # Start backend server using compiled JS
+    command: npm run start:prod
 
   # ==========================================
   # React Frontend Service
