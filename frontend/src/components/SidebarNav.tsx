@@ -2,10 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Inbox,
-  CheckSquare,
-  Zap,
   Settings,
-  Activity,
   Plus,
   X,
   Sparkles,
@@ -24,32 +21,22 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const location = useLocation();
   const { openCompose } = useCompose();
 
-  const navigationItems = [
+  interface NavigationItem {
+    path: string;
+    label: string;
+    icon: React.ReactNode;
+    count?: number;
+  }
+
+  const navigationItems: NavigationItem[] = [
     {
       path: '/dashboard',
       label: 'Inbox',
       icon: <Inbox size={16} />,
-      count: 14,
-    },
-    {
-      path: '/dashboard/tasks',
-      label: 'Tasks',
-      icon: <CheckSquare size={16} />,
-      count: 5,
-    },
-    {
-      path: '/dashboard/rules',
-      label: 'Routing Rules',
-      icon: <Zap size={16} />,
-    },
-    {
-      path: '/dashboard/settings?tab=integrations',
-      label: 'Integrations',
-      icon: <Activity size={16} />,
     },
     {
       path: '/dashboard/settings',
-      label: 'Preferences',
+      label: 'Settings',
       icon: <Settings size={16} />,
     },
   ];
@@ -201,55 +188,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         </div>
       </nav>
 
-      {/* ── System Status Card ─────────────────────────────────────────── */}
-      <div className={`${isMobile ? 'pt-3 mt-3' : 'p-4'}`}>
-        <div
-          className="p-4 rounded-[16px] text-left"
-          style={{
-            backgroundColor: 'rgba(93,107,47,.05)',
-            border: '1px solid rgba(93,107,47,.12)',
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span
-                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
-                  style={{ backgroundColor: 'var(--color-success)' }}
-                />
-                <span
-                  className="relative inline-flex h-2 w-2 rounded-full"
-                  style={{ backgroundColor: 'var(--color-success)' }}
-                />
-              </span>
-              <span
-                className="text-[11px] font-semibold"
-                style={{ color: 'var(--color-ink)' }}
-              >
-                AI Agent Active
-              </span>
-            </div>
-            <Activity size={11} style={{ color: 'var(--color-primary)' }} />
-          </div>
-          <p
-            className="text-[11px] leading-relaxed mb-3"
-            style={{ color: 'var(--color-muted)' }}
-          >
-            Analyzing incoming streams. Gmail linked.
-          </p>
-          <div
-            className="flex items-center justify-between text-[10px] pt-2.5"
-            style={{
-              borderTop: '1px solid rgba(93,107,47,.12)',
-              color: 'var(--color-muted)',
-              fontFamily: 'var(--font-mono)',
-            }}
-          >
-            <span>OpenAI</span>
-            <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>v1.0.0</span>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };

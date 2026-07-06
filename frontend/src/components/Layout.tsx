@@ -76,7 +76,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Search size={14} className="absolute left-3" style={{ color: 'var(--color-muted)' }} />
             <input
               type="text"
-              placeholder="Search emails, tasks, rules…"
+              placeholder="Search emails…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-[13px] rounded-[10px] outline-none transition-all"

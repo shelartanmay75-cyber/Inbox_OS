@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Routes,
   Route,
@@ -15,106 +15,38 @@ import { EmailList } from './components/EmailList';
 import { ComposeModal } from './components/ComposeModal';
 import { LandingPage } from './components/LandingPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
-import { DeadlinesWidget } from './components/DeadlinesWidget';
 import { SocketProvider, useSocket } from './context/SocketContext';
 import {
-  ShieldAlert,
   CheckCircle2,
   Sparkles,
-  TrendingUp,
-  Inbox,
-  Filter,
   Zap,
-  Play,
   Sliders,
   User,
-  Bot,
   Mail,
   Radio,
-  Bell,
   Calendar,
-  Clock,
   CheckSquare,
   Trash2,
   ListChecks,
   AlertCircle,
   Plus,
+  RefreshCw,
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-interface MetricCardProps {
-  title: string;
-  value: string | number;
-  change: string;
-  isPositive: boolean;
-  icon: React.ReactNode;
-  bg?: string;
-  accent?: string;
-}
 
-const MetricCard: React.FC<MetricCardProps> = ({
-  title,
-  value,
-  change,
-  isPositive,
-  icon,
-  accent,
-}) => {
-  const accentColor = accent || (isPositive ? 'var(--color-success)' : 'var(--color-danger)');
-
-  return (
-    <div
-      className="relative overflow-hidden p-5 rounded-[22px] transition-all duration-250"
-      style={{
-        backgroundColor: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-        boxShadow: 'var(--shadow-card)',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-hover)';
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card)';
-        (e.currentTarget as HTMLElement).style.transform = '';
-      }}
-    >
-      {/* Accent bar */}
-      <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[22px]" style={{ backgroundColor: accentColor }} />
-      <div className="flex justify-between items-start mb-4 pt-1">
-        <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>{title}</span>
-        <div className="p-2 flex items-center justify-center rounded-xl" style={{ backgroundColor: `${accentColor}18`, color: accentColor }}>{icon}</div>
-      </div>
-      <div className="flex items-baseline gap-2">
-        <span className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-ink)' }}>
-          {value}
-        </span>
-        <span
-          className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-          style={{
-            backgroundColor: isPositive ? 'rgba(63,167,106,.12)' : 'rgba(217,104,87,.12)',
-            color: accentColor,
-          }}
-        >
-          {change}
-        </span>
-      </div>
-      {/* Bottom accent bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ backgroundColor: accentColor }} />
-    </div>
-  );
-};
 
 
 // Extracted Dashboard Component to protect via ProtectedRoute
 const DashboardContent: React.FC = () => {
+  const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
   const { socket } = useSocket();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const { data: stats, refetch: refetchStats } = useQuery({
+  const { refetch: refetchStats } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const res = await fetch(`${API_BASE}/api/dashboard/stats`, {
@@ -355,6 +287,7 @@ const DashboardContent: React.FC = () => {
         setToastMessage(`Synced ${data.synced} new email(s) from Gmail`);
         setTimeout(() => setToastMessage(null), 4000);
         refetchStats();
+        queryClient.invalidateQueries({ queryKey: ['emails'] });
       } else {
         const err = await res.json();
         alert(err.error || 'Sync failed');
@@ -522,44 +455,6 @@ const DashboardContent: React.FC = () => {
     }
   };
 
-  const metrics = [
-    {
-      title: 'Total Ingested',
-      value: stats?.totalIngested?.value ?? '0',
-      change: stats?.totalIngested?.change ?? '0%',
-      isPositive: stats?.totalIngested?.isPositive ?? true,
-      icon: <Inbox size={18} />,
-      bg: '#BBF7D0',
-      accent: 'var(--color-success)',
-    },
-    {
-      title: 'Urgent Action Required',
-      value: stats?.pendingActions?.value ?? '0',
-      change: stats?.pendingActions?.change ?? '0%',
-      isPositive: stats?.pendingActions?.isPositive ?? true,
-      icon: <ShieldAlert size={18} className="text-amber-400 animate-pulse" />,
-      bg: '#FEF08A',
-      accent: 'var(--color-pending)',
-    },
-    {
-      title: 'Auto-resolved / Closed',
-      value: stats?.resolutionRate?.value ?? '0%',
-      change: stats?.resolutionRate?.change ?? '0%',
-      isPositive: stats?.resolutionRate?.isPositive ?? true,
-      icon: <CheckCircle2 size={18} className="text-emerald-400" />,
-      bg: '#FECACA',
-      accent: 'var(--color-danger)',
-    },
-    {
-      title: 'Average Action Time',
-      value: '1.2m',
-      change: '-12%',
-      isPositive: true,
-      icon: <Clock size={18} />,
-      bg: '#BFDBFE',
-      accent: 'var(--color-accent-cta)',
-    },
-  ];
 
   if (activeTab === 'analytics') {
     return (
@@ -611,10 +506,7 @@ const DashboardContent: React.FC = () => {
             <div className="md:col-span-1 flex flex-col gap-1.5">
               {[
                 { id: 'profile', label: 'General Profile', icon: <User size={15} /> },
-                { id: 'ai', label: 'AI Intelligence', icon: <Bot size={15} /> },
                 { id: 'integrations', label: 'Connections', icon: <Mail size={15} /> },
-                { id: 'notifications', label: 'Alert Rules', icon: <Bell size={15} /> },
-                { id: 'digests', label: 'Email Digests', icon: <Sliders size={15} /> },
               ].map((subTab) => (
                 <button
                   key={subTab.id}
@@ -1582,147 +1474,51 @@ const DashboardContent: React.FC = () => {
           <span>{toastMessage}</span>
         </div>
       )}
-      <div className="space-y-8 animate-fadeIn">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-[24px] font-bold tracking-tight flex items-center gap-2" style={{ color: 'var(--color-ink)' }}>
-              Workspace Overview
+      <div className="space-y-6 animate-fadeIn">
+        {/* Clean Dashboard Header */}
+        <div className="flex flex-row items-center justify-between gap-4 pb-4 border-b border-[var(--color-border)]">
+          <div className="text-left">
+            <h2 className="text-[22px] font-bold tracking-tight flex items-center gap-2" style={{ color: 'var(--color-ink)' }}>
+              My Inbox
               <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
             </h2>
             <p className="text-[13px] mt-1" style={{ color: 'var(--color-muted)' }}>
-              InboxOS has resolved 87 tasks today automatically. Your inbox is clean.
+              Real-time, direct sync with your connected Google account.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 text-[13px] font-medium rounded-[10px] transition-all" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', boxShadow: 'var(--shadow-sm)' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-primary)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-muted)'; }}
+            <button
+              onClick={handleSyncGmail}
+              disabled={gmailSyncing}
+              className="px-4 py-2.5 text-[13px] font-semibold rounded-[10px] flex items-center gap-2 transition-all"
+              style={{
+                backgroundColor: 'var(--color-primary)',
+                color: '#fff',
+                boxShadow: '0 4px 14px rgba(93,107,47,.25)',
+              }}
+              onMouseEnter={e => {
+                if (!gmailSyncing) {
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(93,107,47,.35)';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(93,107,47,.25)';
+                (e.currentTarget as HTMLElement).style.transform = '';
+              }}
             >
-              Diagnostics
-            </button>
-            <button className="px-4 py-2 text-[13px] font-semibold rounded-[10px] flex items-center gap-1.5 transition-all"
-              style={{ backgroundColor: 'var(--color-primary)', color: '#fff', boxShadow: '0 4px 14px rgba(93,107,47,.25)' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(93,107,47,.35)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(93,107,47,.25)'; (e.currentTarget as HTMLElement).style.transform = ''; }}
-            >
-              <Play size={12} fill="currentColor" />
-              <span>Run Pipeline</span>
+              <RefreshCw
+                size={14}
+                className={gmailSyncing ? 'animate-spin' : ''}
+              />
+              <span>{gmailSyncing ? 'Syncing...' : 'Sync Inbox'}</span>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {metrics.map((metric, idx) => (
-            <MetricCard key={idx} {...metric} />
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-2">
-            <div className="flex justify-between items-center px-2">
-              <h3 className="text-sm font-semibold text-black font-black flex items-center gap-2">
-                <Inbox size={16} className="text-blue-600" />
-                <span>Smart Inbound Streams</span>
-              </h3>
-            </div>
-
-            <EmailList />
-          </div>
-
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-black font-black flex items-center gap-2 px-2">
-                <Filter size={16} className="text-blue-600" />
-                <span>Active Routing Rules</span>
-              </h3>
-
-              <div className="neu-card rounded-2xl p-4 border border-black space-y-3.5">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-black border border-black">
-                  <div className="flex items-center gap-2">
-                    <Zap size={14} className="text-amber-400" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-200">
-                        OTP Auto-Extract
-                      </p>
-                      <p className="text-[9px] text-gray-600 font-bold">
-                        Fast-path codes to clipboard
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500 text-black border border-black border border-emerald-500/20">
-                    Active
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-black border border-black">
-                  <div className="flex items-center gap-2">
-                    <Zap size={14} className="text-blue-600" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-200">
-                        Finance Alert Channel
-                      </p>
-                      <p className="text-[9px] text-gray-600 font-bold">
-                        Route invoices to WhatsApp
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500 text-black border border-black border border-emerald-500/20">
-                    Active
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-black border border-black">
-                  <div className="flex items-center gap-2">
-                    <Zap size={14} className="text-gray-700 font-bold" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-200">
-                        Newsletter Digest
-                      </p>
-                      <p className="text-[9px] text-gray-600 font-bold">
-                        Compile weekly updates
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500 text-black border border-black border border-emerald-500/20">
-                    Active
-                  </span>
-                </div>
-
-                <button className="w-full py-2.5 rounded-xl bg-white border border-black hover:bg-white border border-black shadow-[2px_2px_0_0_#111] text-xs font-semibold text-blue-600 border border-black transition-all text-center block">
-                  Manage Rules DSL
-                </button>
-              </div>
-            </div>
-
-            <DeadlinesWidget />
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-black font-black flex items-center gap-2 px-2">
-                <TrendingUp size={16} className="text-blue-600" />
-                <span>Decision Pipeline Load</span>
-              </h3>
-
-              <div className="neu-card rounded-2xl p-5 border border-black space-y-4">
-                <div className="h-16 flex items-end gap-1.5">
-                  {[
-                    45, 60, 30, 80, 65, 95, 40, 50, 75, 90, 85, 30, 45, 60, 85,
-                    95, 70, 55, 60, 90,
-                  ].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-indigo-500/30 rounded-t transition-all hover:bg-indigo-500"
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-between items-center text-[10px] text-gray-600 font-bold border-t-4 border-black pt-3">
-                  <span>12 AM</span>
-                  <span>12 PM</span>
-                  <span>11 PM</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Full-width Email list */}
+        <div className="w-full">
+          <EmailList />
         </div>
       </div>
     </Layout>
