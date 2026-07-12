@@ -298,3 +298,28 @@ select:focus {
   background-color: #0b0a09 !important;
   color: #ffffff !important;
 }
+
+/* ── Dark Mode Asset Utility Rules ──────────────────────────────────────── */
+
+/* 1. Target light-mode icons/SVGs and adjust them to crisp white or warm copper inside dark containers */
+.dark .light-mode-icon,
+.dark svg.light-mode-icon,
+.dark img.light-mode-icon,
+.dark .icon-light-to-white {
+  filter: brightness(0) invert(1) !important; /* Crisp white */
+}
+
+.dark .light-mode-icon-copper,
+.dark svg.light-mode-icon-copper,
+.dark img.light-mode-icon-copper,
+.dark .icon-light-to-copper {
+  filter: sepia(1) saturate(3.5) hue-rotate(345deg) brightness(0.9) contrast(1.2) !important; /* Warm copper */
+}
+
+/* 2. Apply target filter to photographic elements/illustrations to look warm and glare-free */
+.dark img.photo,
+.dark img.illustration,
+.dark .photographic-element,
+.dark .illustration-element {
+  filter: brightness(0.85) contrast(1.1) sepia(20%) !important;
+}
