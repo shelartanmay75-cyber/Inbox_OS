@@ -51,13 +51,13 @@ export class CalendarCreatorService {
       }
 
       // 3. Configure Google OAuth2 Client
-      const redirectUri = process.env.GMAIL_REDIRECT_URI || 
-        (process.env.RENDER_EXTERNAL_URL ? `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/api/integrations/gmail/callback` : 'http://localhost:8000/api/integrations/gmail/callback');
+      const googleCalendarRedirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 
+        (process.env.RENDER_EXTERNAL_URL ? `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/api/integrations/google_calendar/callback` : 'http://localhost:8000/api/integrations/google_calendar/callback');
 
       const oauth2Client = new google.auth.OAuth2(
         process.env.GMAIL_CLIENT_ID,
         process.env.GMAIL_CLIENT_SECRET,
-        redirectUri
+        googleCalendarRedirectUri
       );
       oauth2Client.setCredentials(tokens);
 

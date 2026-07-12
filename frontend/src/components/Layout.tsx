@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Bell, Moon, Menu, LogOut } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { SidebarNav } from './SidebarNav';
 import { FloatingActionButton } from './FloatingActionButton';
@@ -8,9 +8,15 @@ interface LayoutProps {
   children: React.ReactNode;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
+  theme?: string;
+  onToggleTheme?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({
+  children,
+  theme,
+  onToggleTheme,
+}) => {
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,13 +107,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2">
             {/* Theme toggle */}
             <button
+              onClick={onToggleTheme}
               className="p-2 flex items-center justify-center transition-all min-h-[36px] min-w-[36px] rounded-lg"
               style={{ border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-primary)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-muted)'; }}
               aria-label="Toggle theme"
             >
-              <Moon size={15} />
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
 
             {/* Notifications */}

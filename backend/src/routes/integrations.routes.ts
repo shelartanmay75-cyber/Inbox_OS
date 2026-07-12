@@ -338,3 +338,150 @@ integrationsRouter.post(
     }
   }
 );
+
+/**
+ * GET /api/integrations/google_calendar/status
+ * Check if the user has a Google Calendar integration
+ */
+integrationsRouter.get(
+  '/google_calendar/status',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      const integration = await prisma.integration.findUnique({
+        where: {
+          userId_provider: {
+            userId,
+            provider: 'google_calendar',
+          },
+        },
+      });
+
+      return res.json({ connected: !!integration });
+    } catch (err: any) {
+      logger.error('[Integrations] GET /google_calendar/status error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch calendar status' });
+    }
+  }
+);
+
+/**
+ * GET /api/integrations/google_calendar/auth
+ * Generate Google OAuth URL for Calendar access
+ */
+integrationsRouter.get(
+  '/google_calendar/auth',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET,
+        process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:8000/api/integrations/google_calendar/callback'
+      );
+
+      const url = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: ['https://www.googleapis.com/auth/calendar'],
+        prompt: 'consent',
+        state: userId,
+      });
+
+      return res.json({ url });
+    } catch (err: any) {
+      logger.error('[Integrations] GET /google_calendar/auth error:', err.message);
+      return res.status(500).json({ error: 'Failed to generate calendar auth URL' });
+    }
+  }
+);
+
+/**
+ * GET /api/integrations/google_calendar/callback
+ * Exchange authorization code for tokens and save to Integration table
+ */
+integrationsRouter.get(
+  '/google_calendar/callback',
+  async (req: Request, res: Response) => {
+    const code = req.query.code as string;
+    const userId = req.query.state as string;
+
+    if (!code || !userId) {
+      return res.status(400).json({ error: 'Missing code or state parameter' });
+    }
+
+    try {
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET,
+        process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:8000/api/integrations/google_calendar/callback'
+      );
+
+      const { tokens } = await oauth2Client.getToken(code);
+      const encryptedTokens = encrypt(JSON.stringify(tokens));
+
+      await prisma.integration.upsert({
+        where: {
+          userId_provider: {
+            userId,
+            provider: 'google_calendar',
+          },
+        },
+        update: {
+          encryptedTokens,
+          updatedAt: new Date(),
+        },
+        create: {
+          userId,
+          provider: 'google_calendar',
+          encryptedTokens,
+        },
+      });
+
+      logger.info('[Integrations] Google Calendar connected successfully', { userId });
+      
+      // Redirect back to frontend settings integrations subtab
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/`);
+    } catch (err: any) {
+      logger.error('[Integrations] Google Calendar callback error:', err.message);
+      return res.status(500).send('Google Calendar integration failed. Please check backend logs.');
+    }
+  }
+);
+
+/**
+ * DELETE /api/integrations/google_calendar
+ * Disconnect Google Calendar integration
+ */
+integrationsRouter.delete(
+  '/google_calendar',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      await prisma.integration.delete({
+        where: {
+          userId_provider: {
+            userId,
+            provider: 'google_calendar',
+          },
+        },
+      });
+
+      logger.info('[Integrations] Google Calendar disconnected', { userId });
+      return res.json({ message: 'Google Calendar disconnected successfully' });
+    } catch (err: any) {
+      logger.error('[Integrations] DELETE /google_calendar error:', err.message);
+      return res.status(500).json({ error: 'Failed to disconnect Google Calendar' });
+    }
+  }
+);
+

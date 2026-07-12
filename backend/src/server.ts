@@ -50,6 +50,17 @@ if (!getApps().length) {
 }
 
 
+import { aiRouter } from './routes/ai.routes';
+import { calendarRouter } from './routes/calendar.routes';
+import { digestsRouter } from './routes/digests.routes';
+import { expensesRouter } from './routes/expenses.routes';
+import { feedbackRouter } from './routes/feedback.routes';
+import { integrationsRouter } from './routes/integrations.routes';
+import { notificationsRouter } from './routes/notifications.routes';
+import { ragRouter } from './routes/rag.routes';
+import { remindersRouter } from './routes/reminders.routes';
+import { tasksRouter } from './routes/tasks.routes';
+
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 8000;
@@ -2419,6 +2430,18 @@ app.get('/api/auth/google', (req: Request, res: Response) => {
   });
   return res.json({ url });
 });
+
+// Mount integrated routers
+app.use('/api/ai', aiRouter);
+app.use('/api/actions/calendar/events', calendarRouter);
+app.use('/api/digests', digestsRouter);
+app.use('/api/expenses', expensesRouter);
+app.use('/api/feedback', feedbackRouter);
+app.use('/api/integrations', integrationsRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/rag', ragRouter);
+app.use('/api/reminders', remindersRouter);
+app.use('/api/tasks', tasksRouter);
 
 // Start Server
 
