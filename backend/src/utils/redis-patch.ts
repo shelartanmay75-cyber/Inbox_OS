@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { RedisHealth, MockRedisClient } from './redis-health';
 
 import Redis from 'ioredis';
-const OriginalRedis = Redis;
+const OriginalRedis = Redis as any;
 
 // 1. Globally patch EventEmitter.prototype.emit to catch and swallow Redis-related unhandled errors
 const origEmit = EventEmitter.prototype.emit;
