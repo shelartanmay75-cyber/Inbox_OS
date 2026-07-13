@@ -72,7 +72,14 @@ export class AIService {
         const key1 = process.env.GEMINI_API_KEY || 'GEMINI_API_KEY_1_PLACEHOLDER';
         const key2 = process.env.GEMINI_API_KEY_2 || 'GEMINI_API_KEY_2_PLACEHOLDER';
         const key3 = process.env.GEMINI_API_KEY_3 || 'GEMINI_API_KEY_3_PLACEHOLDER';
-        this.geminiKeys = [key1, key2, key3];
+        const key4 = process.env.GEMINI_API_KEY_4 || 'GEMINI_API_KEY_4_PLACEHOLDER';
+        const key5 = process.env.GEMINI_API_KEY_5 || 'GEMINI_API_KEY_5_PLACEHOLDER';
+        
+        const filtered = [key1, key2, key3, key4, key5].filter(
+          (k) => !k.includes('PLACEHOLDER')
+        );
+        
+        this.geminiKeys = filtered.length > 0 ? filtered : [key1];
       }
     }
   }
