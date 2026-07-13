@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles,
   Inbox,
   Cpu,
   Zap,
@@ -11,6 +10,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
+import { Logo } from './Logo';
 
 interface Testimonial {
   text: string;
@@ -143,19 +143,16 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
           className="absolute bottom-[20%] left-[6%] w-24 h-24 rounded-[22px] bg-white/30 dark:bg-white/5 border border-white/40 dark:border-white/10 backdrop-blur-md shadow-[0_4px_24px_rgba(0,0,0,0.01)] pointer-events-none"
         />
 
-        {/* Branding */}
         <div className="flex items-center justify-between z-10 relative">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-[34px] h-[34px] rounded-[14px] bg-[#5F6B38] shadow-sm">
-              <Sparkles size={16} strokeWidth={1.5} className="text-white" />
-            </div>
+            <Logo iconOnly size={34} className="shrink-0" />
             <div>
-              <h2 className="text-sm font-bold tracking-tight text-[#1D1D1D] dark:text-zinc-100 leading-none">
+              <h2 
+                className="text-[17px] font-bold tracking-tight text-[#1D1D1D] dark:text-zinc-100 leading-none"
+                style={{ fontFamily: "'Oswald', sans-serif", letterSpacing: '-0.3px' }}
+              >
                 InboxOS
               </h2>
-              <span className="text-[9px] font-bold text-[#5F6B38] tracking-widest uppercase block mt-0.5">
-                AI Operating System
-              </span>
             </div>
           </div>
           <span className="text-[10px] font-bold px-3 py-1 bg-white dark:bg-zinc-800 border border-[#EAE5DA] dark:border-zinc-700 text-[#6B7280] dark:text-zinc-400 rounded-full shadow-sm">

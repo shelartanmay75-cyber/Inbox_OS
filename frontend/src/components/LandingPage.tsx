@@ -7,6 +7,7 @@ import {
   useTransform,
 } from 'framer-motion';
 import { Avatar } from './Avatar';
+import { Logo } from './Logo';
 import {
   Sparkles,
   Inbox,
@@ -419,16 +420,14 @@ export const LandingPage: React.FC = () => {
             className="flex items-center gap-3 cursor-pointer select-none"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            <div className="flex items-center justify-center w-[34px] h-[34px] rounded-[14px] bg-[#5F6B38] shadow-sm transition-transform duration-200 hover:scale-105 active:scale-95">
-              <Sparkles size={16} strokeWidth={1.5} className="text-white" />
-            </div>
+            <Logo iconOnly size={34} className="shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95" />
             <div className="flex flex-col justify-center">
-              <h1 className="text-sm font-bold tracking-tight text-[#1D1D1D] leading-none">
+              <h1 
+                className="text-[17px] font-bold tracking-tight text-[#1D1D1D] leading-none"
+                style={{ fontFamily: "'Oswald', sans-serif", letterSpacing: '-0.3px' }}
+              >
                 InboxOS
               </h1>
-              <span className="text-[9px] font-bold text-[#5F6B38] tracking-widest uppercase block mt-0.5">
-                AI Operating System
-              </span>
             </div>
           </div>
 
@@ -2282,14 +2281,13 @@ export const LandingPage: React.FC = () => {
                 className="flex items-center gap-3 cursor-pointer select-none"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#5F6B38] shadow-sm">
-                  <Sparkles
-                    size={14}
-                    strokeWidth={1.5}
-                    className="text-white"
-                  />
-                </div>
-                <h4 className="text-sm font-bold text-[#1D1D1D]">InboxOS</h4>
+                <Logo iconOnly size={32} className="shrink-0" />
+                <h4 
+                  className="text-[17px] font-bold text-[#1D1D1D]"
+                  style={{ fontFamily: "'Oswald', sans-serif", letterSpacing: '-0.3px' }}
+                >
+                  InboxOS
+                </h4>
               </div>
 
               {/* Company description */}
