@@ -506,10 +506,23 @@ html.dark-theme body::before {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle at 10% 20%, rgba(255, 106, 0, 0.03) 0%, transparent 50%),
-              radial-gradient(circle at 90% 80%, rgba(255, 140, 50, 0.02) 0%, transparent 60%);
+  background: radial-gradient(circle at 15% 15%, rgba(255, 106, 0, 0.04) 0%, transparent 55%),
+              radial-gradient(circle at 85% 85%, rgba(255, 140, 50, 0.03) 0%, transparent 60%);
   pointer-events: none;
-  z-index: 0;
+  z-index: -2;
+}
+
+/* Global Mouse Follow Orange Glow Background */
+html.dark-theme body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(600px circle at var(--global-mouse-x, -999px) var(--global-mouse-y, -999px), rgba(255, 106, 0, 0.05), transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 /* Base Override */
@@ -819,7 +832,7 @@ html.dark-theme .hover\:bg-slate-100:hover,
 html.dark-theme .hover\:bg-white\/10:hover,
 html.dark-theme .group:hover .group-hover\:bg-\[\#FAF7F2\],
 html.dark-theme .group:hover .group-hover\:bg-slate-50 {
-  background-color: rgba(255, 255, 255, 0.04) !important;
+  background-color: rgba(255, 106, 0, 0.06) !important;
   background-image: none !important;
 }
 

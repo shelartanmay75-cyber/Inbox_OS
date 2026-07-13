@@ -1975,6 +1975,15 @@ export default function App() {
       document.documentElement.classList.add('light-theme');
       document.documentElement.classList.remove('dark', 'dark-theme');
     }
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      document.documentElement.style.setProperty('--global-mouse-x', `${e.clientX}px`);
+      document.documentElement.style.setProperty('--global-mouse-y', `${e.clientY}px`);
+    };
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+    };
   }, []);
 
   return (
