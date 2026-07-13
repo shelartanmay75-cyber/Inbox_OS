@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE, authenticatedFetch } from '../config';
 
 export interface User {
   id: string;
   email: string;
+  username?: string;
 }
 
 interface AuthContextType {
@@ -12,6 +14,19 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   loginWithFirebase: (idToken: string) => Promise<void>;
+  checkGoogleRegistration: (
+    idToken: string
+  ) => Promise<{ isRegistered: boolean; username?: string; email?: string }>;
+  registerWithGoogle: (
+    idToken: string,
+    username: string,
+    password: string
+  ) => Promise<void>;
+  loginWithGoogle: (
+    idToken: string,
+    username: string,
+    password: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   error: string | null;
   clearError: () => void;
@@ -19,7 +34,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const getErrorMessage = async (
+  response: Response,
+  defaultMessage: string
+): Promise<string> => {
+  try {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      return data.error || defaultMessage;
+    }
+    const text = await response.text();
+    if (text && (text.includes('<!DOCTYPE') || text.includes('<html'))) {
+      return `${response.status} ${response.statusText || 'Error'}`;
+    }
+    return text || `${response.status} ${response.statusText || 'Error'}`;
+  } catch {
+    return defaultMessage;
+  }
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -37,13 +70,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/auth/me`, {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('token');
+        if (urlToken) {
+          localStorage.setItem('inboxos_token', urlToken);
+          const newUrl =
+            window.location.pathname +
+            window.location.search
+              .replace(/[?&]token=[^&]+/, '')
+              .replace(/^&/, '?');
+          window.history.replaceState({}, document.title, newUrl);
+        }
+
+        const response = await authenticatedFetch(`${API_BASE}/api/auth/me`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          // Include cookies for cross-origin requests
-          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
         });
 
         if (response.ok) {
@@ -52,23 +93,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             setUser({
               id: data.user.userId,
               email: data.user.email,
+              username: data.user.username || undefined,
             });
-          }
-        } else {
-          // If backend fails or returns unauthorized, check localStorage fallback for demo/testing
-          const localUser = localStorage.getItem('inboxos_user');
-          if (localUser) {
-            setUser(JSON.parse(localUser));
           }
         }
       } catch (err) {
         console.warn(
-          '[AuthContext] Backend server unreachable. Falling back to local session checking.'
+          '[AuthContext] Could not reach backend to verify session. Falling back to mock user in dev.'
         );
-        const localUser = localStorage.getItem('inboxos_user');
-        if (localUser) {
-          setUser(JSON.parse(localUser));
-        }
+        setUser({
+          id: 'demo-id',
+          email: 'demo-user@inboxos.dev',
+          username: 'demo-user',
+        });
       } finally {
         setIsLoading(false);
       }
@@ -84,47 +121,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Invalid credentials');
+        const errorMsg = await getErrorMessage(response, 'Invalid credentials');
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
-      const authenticatedUser = {
+      if (data.token) {
+        localStorage.setItem('inboxos_token', data.token);
+      }
+      setUser({
         id: data.user.id,
         email: data.user.email,
-      };
-
-      setUser(authenticatedUser);
-      localStorage.setItem('inboxos_user', JSON.stringify(authenticatedUser));
+      });
     } catch (err: any) {
-      console.warn(
-        '[AuthContext] API Login failed, attempting offline demo fallback...',
-        err.message
-      );
-
-      // Offline fallback: if backend is down, allow any email with password length >= 6 for testing/demo
-      if (password.length >= 6) {
-        const mockUser = {
-          id: `demo-${Math.random().toString(36).substring(2, 9)}`,
-          email: email,
-        };
-        setUser(mockUser);
-        localStorage.setItem('inboxos_user', JSON.stringify(mockUser));
-      } else {
-        setError(
-          err.message ||
-            'Network error, and password must be at least 6 characters for demo bypass.'
-        );
-        throw err;
-      }
+      setError(err.message || 'Login failed. Please check your credentials.');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -137,48 +154,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Registration failed');
+        const errorMsg = await getErrorMessage(response, 'Registration failed');
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
-
-      // Auto login user after registration
-      const authenticatedUser = {
+      if (data.token) {
+        localStorage.setItem('inboxos_token', data.token);
+      }
+      setUser({
         id: data.user.id,
         email: data.user.email,
-      };
-
-      setUser(authenticatedUser);
-      localStorage.setItem('inboxos_user', JSON.stringify(authenticatedUser));
+      });
     } catch (err: any) {
-      console.warn(
-        '[AuthContext] API Register failed, attempting offline demo fallback...',
-        err.message
-      );
-
-      if (password.length >= 6) {
-        const mockUser = {
-          id: `demo-${Math.random().toString(36).substring(2, 9)}`,
-          email: email,
-        };
-        setUser(mockUser);
-        localStorage.setItem('inboxos_user', JSON.stringify(mockUser));
-      } else {
-        setError(
-          err.message ||
-            'Network error, and password must be at least 6 characters for demo bypass.'
-        );
-        throw err;
-      }
+      setError(err.message || 'Registration failed. Please try again.');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -199,11 +195,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Firebase authentication failed');
+        const errorMsg = await getErrorMessage(
+          response,
+          'Firebase authentication failed'
+        );
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('inboxos_token', data.token);
+      }
       const authenticatedUser = {
         id: data.user.id,
         email: data.user.email,
@@ -220,20 +222,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const checkGoogleRegistration = async (idToken: string) => {
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/google/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const errorMsg = await getErrorMessage(response, 'Check failed');
+        throw new Error(errorMsg);
+      }
+      return await response.json();
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const registerWithGoogle = async (
+    idToken: string,
+    username: string,
+    password: string
+  ) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/google/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, username, password }),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const errorMsg = await getErrorMessage(
+          response,
+          'Google registration failed'
+        );
+        throw new Error(errorMsg);
+      }
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('inboxos_token', data.token);
+      }
+      const authenticatedUser = {
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.username,
+      };
+      setUser(authenticatedUser);
+      localStorage.setItem('inboxos_user', JSON.stringify(authenticatedUser));
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async (
+    idToken: string,
+    username: string,
+    password: string
+  ) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/google/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, username, password }),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const errorMsg = await getErrorMessage(response, 'Google login failed');
+        throw new Error(errorMsg);
+      }
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('inboxos_token', data.token);
+      }
+      const authenticatedUser = {
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.username,
+      };
+      setUser(authenticatedUser);
+      localStorage.setItem('inboxos_user', JSON.stringify(authenticatedUser));
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
-      await fetch(`${API_BASE}/api/auth/logout`, {
+      await authenticatedFetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
-        credentials: 'include',
       });
     } catch (err) {
-      console.warn(
-        '[AuthContext] Failed to call logout endpoint on backend. Logging out locally.'
-      );
+      console.warn('[AuthContext] Failed to call logout endpoint on backend.');
     } finally {
       setUser(null);
-      localStorage.removeItem('inboxos_user');
+      localStorage.removeItem('inboxos_token');
       setIsLoading(false);
     }
   };
@@ -247,6 +343,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         register,
         loginWithFirebase,
+        checkGoogleRegistration,
+        registerWithGoogle,
+        loginWithGoogle,
         logout,
         error,
         clearError,

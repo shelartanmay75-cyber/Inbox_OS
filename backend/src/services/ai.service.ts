@@ -33,16 +33,16 @@ export interface ClassificationResult {
 }
 
 export interface ActionItemResult {
-  taskDescription: string;
-  deadline: string | null;
+  task?: string;
+  taskDescription?: string;
+  deadline?: string | null;
 }
-
 
 export class AIService {
   private static openaiInstance: OpenAI | null = null;
   private static geminiInstance: GoogleGenAI | null = null;
 
-  private static getOpenAI(): OpenAI {
+  public static getOpenAI(): OpenAI {
     if (!this.openaiInstance) {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey || apiKey === 'sk-...') {
@@ -72,6 +72,44 @@ export class AIService {
    * Classifies an email's subject and body using the active provider model.
    * Leverages Structured Outputs (JSON Schema) and exponential backoff retry for rate limits.
    */
+  private static extractDatesWithChrono(
+    subject: string,
+    body: string
+  ): string[] {
+    const parsedDeadlines: string[] = [];
+    const seen = new Set<string>();
+
+    const parseText = (text: string) => {
+      if (!text) return;
+      const parsed = chrono.parse(text);
+      for (const ref of parsed) {
+        const date = ref.date();
+        const hasHour = ref.start.isCertain('hour');
+        let dateStr: string;
+        if (!hasHour) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          dateStr = `${year}-${month}-${day}T23:59:00Z`;
+        } else {
+          dateStr = date.toISOString();
+        }
+        if (!seen.has(dateStr)) {
+          seen.add(dateStr);
+          parsedDeadlines.push(dateStr);
+        }
+      }
+    };
+
+    parseText(subject);
+    parseText(body);
+    return parsedDeadlines;
+  }
+
+  /**
+   * Classifies an email's subject and body using the active provider model.
+   * Leverages Structured Outputs (JSON Schema) and exponential backoff retry for rate limits.
+   */
   public static async classifyEmail(
     subject: string,
     body: string
@@ -82,11 +120,11 @@ export class AIService {
       return {
         category: heuristicCategory,
         confidence: 1.0,
-        deadlines: [],
+        deadlines: this.extractDatesWithChrono(subject, body),
       };
     }
 
-    const provider = process.env.AI_PROVIDER || 'openai';
+    const provider = process.env.AI_PROVIDER || 'gemini';
     let result: ClassificationResult;
 
     if (provider === 'gemini') {
@@ -95,7 +133,10 @@ export class AIService {
       try {
         result = await OllamaProvider.classify(subject, body);
       } catch (error) {
-        console.warn(`[AIService] Ollama classification failed or unreachable. Falling back to OpenAI. Error:`, error);
+        console.warn(
+          `[AIService] Ollama classification failed or unreachable. Falling back to OpenAI. Error:`,
+          error
+        );
         result = await this.classifyWithOpenAI(subject, body);
       }
     } else {
@@ -104,21 +145,19 @@ export class AIService {
 
     // Chrono-node fallback if LLM misses dates
     if (!result.deadlines || result.deadlines.length === 0) {
-      const parsedDeadlines: string[] = [];
-      const parsed = chrono.parse(body);
-      for (const ref of parsed) {
-        const date = ref.date();
-        const hasHour = ref.start.isCertain('hour');
-        if (!hasHour) {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          parsedDeadlines.push(`${year}-${month}-${day}T23:59:00Z`);
-        } else {
-          parsedDeadlines.push(date.toISOString());
+      result.deadlines = this.extractDatesWithChrono(subject, body);
+    } else {
+      // Ensure LLM deadlines are unique and formatted correctly
+      const seen = new Set<string>();
+      const formatted: string[] = [];
+      for (const d of result.deadlines) {
+        const normalized = this.normalizeIsoDate(d);
+        if (normalized && !seen.has(normalized)) {
+          seen.add(normalized);
+          formatted.push(normalized);
         }
       }
-      result.deadlines = parsedDeadlines;
+      result.deadlines = formatted;
     }
 
     return result;
@@ -344,7 +383,6 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
     throw new Error('Unknown error during Gemini email classification.');
   }
 
-
   /**
    * Generates a 2-3 sentence summary of an email thread and saves it to the Thread model.
    * Fetches all emails belonging to the thread ordered by date, truncates content to 8000 tokens
@@ -372,7 +410,7 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
     const truncatedText = this.truncateToTokens(concatenatedBodies, 8000);
 
     // 4. Prompt the LLM depending on active provider
-    const provider = process.env.AI_PROVIDER || 'openai';
+    const provider = process.env.AI_PROVIDER || 'gemini';
     let summary = '';
 
     if (provider === 'gemini') {
@@ -381,7 +419,10 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
       try {
         summary = await OllamaProvider.generateSummary([truncatedText]);
       } catch (error) {
-        console.warn(`[AIService] Ollama thread summarization failed or unreachable. Falling back to OpenAI. Error:`, error);
+        console.warn(
+          `[AIService] Ollama thread summarization failed or unreachable. Falling back to OpenAI. Error:`,
+          error
+        );
         summary = await this.summarizeWithOpenAI(truncatedText);
       }
     } else {
@@ -528,8 +569,11 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
   /**
    * Extracts explicit, concrete tasks and their deadlines from an email subject and body.
    */
-  public static async extractActionItems(subject: string, body: string): Promise<ActionItemResult[]> {
-    const provider = process.env.AI_PROVIDER || 'openai';
+  public static async extractActionItems(
+    subject: string,
+    body: string
+  ): Promise<ActionItemResult[]> {
+    const provider = process.env.AI_PROVIDER || 'gemini';
     let items: ActionItemResult[] = [];
 
     if (provider === 'gemini') {
@@ -538,7 +582,10 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
       try {
         items = await OllamaProvider.extractActionItems(subject, body);
       } catch (error) {
-        console.warn(`[AIService] Ollama action items extraction failed or unreachable. Falling back to OpenAI. Error:`, error);
+        console.warn(
+          `[AIService] Ollama action items extraction failed or unreachable. Falling back to OpenAI. Error:`,
+          error
+        );
         items = await this.extractActionItemsWithOpenAI(subject, body);
       }
     } else {
@@ -547,9 +594,17 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
 
     // Chrono-node fallback for missing deadlines on action items
     for (const item of items) {
+      // Normalize task and taskDescription fields to be mutually populated
+      if (item.task && !item.taskDescription) {
+        item.taskDescription = item.task;
+      }
+      if (item.taskDescription && !item.task) {
+        item.task = item.taskDescription;
+      }
+
       if (!item.deadline || item.deadline.trim() === '') {
         // Try parsing the task description first
-        let fallbackDate = this.parseDateWithChrono(item.taskDescription);
+        let fallbackDate = this.parseDateWithChrono(item.taskDescription || item.task || '');
         if (!fallbackDate) {
           // If not found in task description, parse the email body
           fallbackDate = this.parseDateWithChrono(body);
@@ -567,9 +622,12 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
   /**
    * Backward-compatible wrapper that extracts task description strings.
    */
-  public static async extractActions(subject: string, body: string): Promise<string[]> {
+  public static async extractActions(
+    subject: string,
+    body: string
+  ): Promise<string[]> {
     const items = await this.extractActionItems(subject, body);
-    return items.map(item => item.taskDescription);
+    return items.map((item) => item.taskDescription || item.task || '');
   }
 
   private static parseDateWithChrono(text: string): string | null {
@@ -606,11 +664,15 @@ Provide a confidence score between 0.0 and 1.0. Also, extract all deadlines ment
     }
   }
 
-  private static async extractActionItemsWithOpenAI(subject: string, body: string): Promise<ActionItemResult[]> {
+  private static async extractActionItemsWithOpenAI(
+    subject: string,
+    body: string
+  ): Promise<ActionItemResult[]> {
     const openai = this.getOpenAI();
 
     const systemPrompt = `You are an expert AI email task extraction assistant. Your job is to analyze the email subject line and body text, and extract all explicit, concrete tasks (e.g., 'Send the report by Friday') mentioned.
 For each task, also extract any mentioned deadline as an ISO 8601 string (e.g., '2026-07-15T23:59:00Z'). If no deadline is mentioned, return an empty string for the deadline.
+Populate both the 'task' and 'taskDescription' properties with the description of the task.
 Do not infer, assume, or fabricate tasks or deadlines that are not explicitly and concretely requested.
 If there are no explicit, concrete tasks, return an empty array.`;
 
@@ -641,6 +703,9 @@ If there are no explicit, concrete tasks, return an empty array.`;
                     items: {
                       type: 'object',
                       properties: {
+                        task: {
+                          type: 'string',
+                        },
                         taskDescription: {
                           type: 'string',
                         },
@@ -648,7 +713,7 @@ If there are no explicit, concrete tasks, return an empty array.`;
                           type: 'string',
                         },
                       },
-                      required: ['taskDescription', 'deadline'],
+                      required: ['task', 'taskDescription', 'deadline'],
                       additionalProperties: false,
                     },
                   },
@@ -667,7 +732,9 @@ If there are no explicit, concrete tasks, return an empty array.`;
           );
         }
 
-        const result = JSON.parse(rawContent) as { actionItems: ActionItemResult[] };
+        const result = JSON.parse(rawContent) as {
+          actionItems: ActionItemResult[];
+        };
         return result.actionItems || [];
       } catch (error: any) {
         attempt++;
@@ -699,11 +766,15 @@ If there are no explicit, concrete tasks, return an empty array.`;
     throw new Error('Unknown error during OpenAI action extraction.');
   }
 
-  private static async extractActionItemsWithGemini(subject: string, body: string): Promise<ActionItemResult[]> {
+  private static async extractActionItemsWithGemini(
+    subject: string,
+    body: string
+  ): Promise<ActionItemResult[]> {
     const ai = this.getGemini();
 
     const systemInstruction = `You are an expert AI email task extraction assistant. Your job is to analyze the email subject line and body text, and extract all explicit, concrete tasks (e.g., 'Send the report by Friday') mentioned.
 For each task, also extract any mentioned deadline as an ISO 8601 string (e.g., '2026-07-15T23:59:00Z'). If no deadline is mentioned, return an empty string for the deadline.
+Populate both the 'task' and 'taskDescription' properties with the description of the task.
 Do not infer, assume, or fabricate tasks or deadlines that are not explicitly and concretely requested.
 If there are no explicit, concrete tasks, return an empty array.`;
 
@@ -729,6 +800,9 @@ If there are no explicit, concrete tasks, return an empty array.`;
                   items: {
                     type: 'OBJECT',
                     properties: {
+                      task: {
+                        type: 'STRING',
+                      },
                       taskDescription: {
                         type: 'STRING',
                       },
@@ -736,7 +810,7 @@ If there are no explicit, concrete tasks, return an empty array.`;
                         type: 'STRING',
                       },
                     },
-                    required: ['taskDescription', 'deadline'],
+                    required: ['task', 'taskDescription', 'deadline'],
                   },
                 },
               },
@@ -752,7 +826,9 @@ If there are no explicit, concrete tasks, return an empty array.`;
           );
         }
 
-        const result = JSON.parse(rawContent) as { actionItems: ActionItemResult[] };
+        const result = JSON.parse(rawContent) as {
+          actionItems: ActionItemResult[];
+        };
         return result.actionItems || [];
       } catch (error: any) {
         attempt++;
@@ -815,17 +891,29 @@ If there are no explicit, concrete tasks, return an empty array.`;
     const subject = email.subject || '';
     const body = email.body || '';
     if (!body.trim()) {
-      console.warn(`[AIService] Skipping embedding for email ${emailId} because body is empty.`);
+      console.warn(
+        `[AIService] Skipping embedding for email ${emailId} because body is empty.`
+      );
       return [];
     }
 
     const textToEmbed = this.cleanHtml(`${subject}\n\n${body}`);
 
-    const provider = process.env.AI_PROVIDER || 'openai';
+    const provider = process.env.AI_PROVIDER || 'gemini';
     let embedding: number[] = [];
 
     if (provider === 'gemini') {
       embedding = await this.generateEmbeddingWithGemini(textToEmbed);
+    } else if (provider === 'ollama') {
+      try {
+        embedding = await OllamaProvider.generateEmbedding(textToEmbed);
+      } catch (error) {
+        console.warn(
+          `[AIService] Ollama embedding generation failed or unreachable. Falling back to OpenAI. Error:`,
+          error
+        );
+        embedding = await this.generateEmbeddingWithOpenAI(textToEmbed);
+      }
     } else {
       embedding = await this.generateEmbeddingWithOpenAI(textToEmbed);
     }
@@ -963,12 +1051,26 @@ If there are no explicit, concrete tasks, return an empty array.`;
    * If running under PostgreSQL, uses raw SQL native pgvector cosine similarity.
    * If running under SQLite, retrieves all embedded emails and calculates similarity in-memory.
    */
-  public static async searchSimilarEmails(query: string, limit: number = 5, userId?: string): Promise<any[]> {
-    const provider = process.env.AI_PROVIDER || 'openai';
+  public static async searchSimilarEmails(
+    query: string,
+    limit: number = 5,
+    userId?: string
+  ): Promise<any[]> {
+    const provider = process.env.AI_PROVIDER || 'gemini';
     let queryEmbedding: number[] = [];
 
     if (provider === 'gemini') {
       queryEmbedding = await this.generateEmbeddingWithGemini(query);
+    } else if (provider === 'ollama') {
+      try {
+        queryEmbedding = await OllamaProvider.generateEmbedding(query);
+      } catch (error) {
+        console.warn(
+          `[AIService] Ollama embedding query generation failed or unreachable. Falling back to OpenAI. Error:`,
+          error
+        );
+        queryEmbedding = await this.generateEmbeddingWithOpenAI(query);
+      }
     } else {
       queryEmbedding = await this.generateEmbeddingWithOpenAI(query);
     }
@@ -981,7 +1083,7 @@ If there are no explicit, concrete tasks, return an empty array.`;
       const embeddingString = `[${queryEmbedding.join(',')}]`;
       let results: any[];
       if (userId) {
-        results = await prisma.$queryRawUnsafe<any[]>(
+        results = (await prisma.$queryRawUnsafe(
           `SELECT id, "messageId", sender, recipient, subject, body, status, category, "createdAt", "userId", "threadId",
                   (1 - (embedding <=> $1::vector)) as similarity
            FROM "Email"
@@ -991,9 +1093,9 @@ If there are no explicit, concrete tasks, return an empty array.`;
           embeddingString,
           userId,
           limit
-        );
+        )) as any[];
       } else {
-        results = await prisma.$queryRawUnsafe<any[]>(
+        results = (await prisma.$queryRawUnsafe(
           `SELECT id, "messageId", sender, recipient, subject, body, status, category, "createdAt", "userId", "threadId",
                   (1 - (embedding <=> $1::vector)) as similarity
            FROM "Email"
@@ -1002,7 +1104,7 @@ If there are no explicit, concrete tasks, return an empty array.`;
            LIMIT $2`,
           embeddingString,
           limit
-        );
+        )) as any[];
       }
       return results;
     } else {
@@ -1062,6 +1164,174 @@ If there are no explicit, concrete tasks, return an empty array.`;
   }
 
   /**
+   * Generate a text reply or completion from AI given a prompt.
+   * Used by email reply generation, expense extraction, and digest generation.
+   */
+  public static async generateReply(prompt: string): Promise<string> {
+    const provider = process.env.AI_PROVIDER || 'gemini';
+
+    try {
+      if (provider === 'gemini') {
+        const gemini = this.getGemini();
+        const response = await gemini.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        });
+        return response.text || '';
+      } else if (provider === 'ollama') {
+        try {
+          return await OllamaProvider.generate(prompt);
+        } catch (error) {
+          console.warn(
+            `[AIService] Ollama generateReply failed or unreachable. Falling back to OpenAI. Error:`,
+            error
+          );
+          const openai = this.getOpenAI();
+          const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 1500,
+            temperature: 0.7,
+          });
+          return response.choices[0]?.message?.content || '';
+        }
+      } else {
+        const openai = this.getOpenAI();
+        const response = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 1500,
+          temperature: 0.7,
+        });
+        return response.choices[0]?.message?.content || '';
+      }
+    } catch (err: any) {
+      throw new Error(`AI generateReply failed: ${err.message}`);
+    }
+  }
+
+  /**
+   * Categorizes a link's purpose using LLM (OpenAI, Gemini, or Ollama)
+   */
+  public static async categorizeLink(
+    href: string,
+    text: string
+  ): Promise<string> {
+    const provider = process.env.AI_PROVIDER || 'gemini';
+    const systemPrompt = `You are a link classification assistant. Categorize the given link (based on URL and anchor text) into one of the following categories:
+- unsubscribe
+- confirm
+- download
+- meeting
+- payment
+- other
+
+Provide the result as a JSON object with a single field 'category'.`;
+    const userPrompt = `URL: ${href}\nAnchor Text: ${text}`;
+
+    try {
+      if (provider === 'gemini') {
+        const gemini = this.getGemini();
+        const response = await gemini.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemPrompt,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'OBJECT',
+              properties: {
+                category: {
+                  type: 'STRING',
+                  enum: [
+                    'unsubscribe',
+                    'confirm',
+                    'download',
+                    'meeting',
+                    'payment',
+                    'other',
+                  ],
+                },
+              },
+              required: ['category'],
+            },
+          },
+        });
+        const parsed = JSON.parse(response.text || '{}');
+        return parsed.category || 'other';
+      } else if (provider === 'ollama') {
+        try {
+          return await OllamaProvider.categorizeLink(href, text);
+        } catch (error) {
+          console.warn(
+            `[AIService] Ollama link categorization failed or unreachable. Falling back to OpenAI. Error:`,
+            error
+          );
+          return await this.categorizeLinkWithOpenAI(systemPrompt, userPrompt);
+        }
+      } else if (provider === 'mock') {
+        const lowerHref = href.toLowerCase();
+        if (
+          lowerHref.includes('zoom.us') ||
+          lowerHref.includes('meet.google.com')
+        ) {
+          return 'meeting';
+        }
+        return 'other';
+      } else {
+        return await this.categorizeLinkWithOpenAI(systemPrompt, userPrompt);
+      }
+    } catch (err: any) {
+      console.warn(
+        `[AIService] Link categorization fallback to 'other' due to error:`,
+        err.message
+      );
+      return 'other';
+    }
+  }
+
+  private static async categorizeLinkWithOpenAI(
+    systemPrompt: string,
+    userPrompt: string
+  ): Promise<string> {
+    const openai = this.getOpenAI();
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'link_categorization',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              category: {
+                type: 'string',
+                enum: [
+                  'unsubscribe',
+                  'confirm',
+                  'download',
+                  'meeting',
+                  'payment',
+                  'other',
+                ],
+              },
+            },
+            required: ['category'],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+    const parsed = JSON.parse(response.choices[0]?.message?.content || '{}');
+    return parsed.category || 'other';
+  }
+
+  /**
    * Extracts explicit deadline dates/times from an email subject and body.
    * Returns an array of ISO 8601 strings (UTC). Returns empty array if none found.
    */
@@ -1069,7 +1339,7 @@ If there are no explicit, concrete tasks, return an empty array.`;
     subject: string,
     body: string
   ): Promise<string[]> {
-    const provider = process.env.AI_PROVIDER || 'openai';
+    const provider = process.env.AI_PROVIDER || 'gemini';
     if (provider === 'gemini') {
       return this.extractDeadlinesWithGemini(subject, body);
     } else {
@@ -1222,4 +1492,3 @@ Do NOT infer or fabricate deadlines. Only return dates explicitly stated.`;
     return [];
   }
 }
-

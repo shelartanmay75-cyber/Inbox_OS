@@ -1,15 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  Inbox,
-  CheckSquare,
-  Zap,
-  Settings,
-  Sparkles,
-  Activity,
-  Plus,
-  X,
-} from 'lucide-react';
+import { Inbox, Settings, Plus, X, Sparkles } from 'lucide-react';
 import { useCompose } from '../context/ComposeContext';
 
 export interface SidebarNavProps {
@@ -24,33 +15,41 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const location = useLocation();
   const { openCompose } = useCompose();
 
-  const navigationItems = [
+  interface NavigationItem {
+    path: string;
+    label: string;
+    icon: React.ReactNode;
+    count?: number;
+  }
+
+  const navigationItems: NavigationItem[] = [
     {
       path: '/dashboard',
       label: 'Inbox',
-      icon: <Inbox size={18} />,
-      count: 14,
-    },
-    {
-      path: '/dashboard/tasks',
-      label: 'Dashboard Tasks',
-      icon: <CheckSquare size={18} />,
-      count: 5,
-    },
-    {
-      path: '/dashboard/rules',
-      label: 'Routing Rules',
-      icon: <Zap size={18} />,
+      icon: <Inbox size={16} />,
     },
     {
       path: '/dashboard/settings',
-      label: 'Preferences',
-      icon: <Settings size={18} />,
+      label: 'Settings',
+      icon: <Settings size={16} />,
     },
   ];
 
-  // Helper to determine if the navigation item path is currently active
   const isItemActive = (path: string) => {
+    if (path.includes('tab=integrations')) {
+      const searchParams = new URLSearchParams(location.search);
+      return (
+        location.pathname.startsWith('/dashboard/settings') &&
+        searchParams.get('tab') === 'integrations'
+      );
+    }
+    if (path === '/dashboard/settings') {
+      const searchParams = new URLSearchParams(location.search);
+      return (
+        location.pathname.startsWith('/dashboard/settings') &&
+        searchParams.get('tab') !== 'integrations'
+      );
+    }
     if (path === '/dashboard') {
       return (
         location.pathname === '/dashboard' ||
@@ -67,20 +66,36 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full flex-1">
-      {/* ── Brand Logo Header ─────────────────────────────────────────────────── */}
+    <div
+      className="flex flex-col h-full flex-1 dark:bg-zinc-900"
+      style={{ backgroundColor: 'var(--color-surface)' }}
+    >
+      {/* ── Brand Logo ──────────────────────────────────────────────────── */}
       <div
-        className={`flex items-center justify-between ${isMobile ? 'pb-6 border-b border-white/5 mb-4' : 'px-6 py-6 border-b border-white/5'}`}
+        className={`flex items-center justify-between ${isMobile ? 'pb-4 mb-2' : 'px-5 py-5'}`}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 glow-accent shrink-0">
-            <Sparkles size={18} className="text-white" />
+        <div className="flex items-center gap-2.5">
+          {/* Logo mark: olive rounded */}
+          <div
+            className="flex items-center justify-center w-8 h-8 rounded-[10px] shrink-0"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            <Sparkles size={15} className="text-white" fill="white" />
           </div>
           <div className="text-left">
-            <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-white via-gray-100 to-gray-400 bg-clip-text text-transparent leading-none">
+            <h1
+              className="text-[15px] leading-none font-bold tracking-tight dark:text-zinc-100"
+              style={{
+                fontFamily: 'var(--font-display)',
+                color: 'var(--color-ink)',
+              }}
+            >
               InboxOS
             </h1>
-            <span className="text-[10px] text-indigo-400/80 font-semibold tracking-wider uppercase block mt-1">
+            <span
+              className="text-[10px] font-medium tracking-wide block mt-0.5 dark:text-zinc-400"
+              style={{ color: 'var(--color-muted)' }}
+            >
               Decision Layer
             </span>
           </div>
@@ -89,98 +104,81 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         {isMobile && onCloseMobileMenu && (
           <button
             onClick={onCloseMobileMenu}
-            className="p-3 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 flex items-center justify-center rounded-lg transition-all dark:border-zinc-700 dark:text-zinc-400"
+            style={{
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-muted)',
+            }}
             aria-label="Close menu"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         )}
       </div>
 
-      {/* ── Compose Action Button ──────────────────────────────────────────────── */}
-      <div className={`${isMobile ? 'py-2 mb-4' : 'px-4 py-4'}`}>
+      {/* ── Compose Button ──────────────────────────────────────────────── */}
+      <div className={`${isMobile ? 'py-2 mb-2' : 'px-4 pb-4'}`}>
         <button
           onClick={() => {
             openCompose();
             handleLinkClick();
           }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-200 glow-accent-hover active:scale-[0.98] min-h-[44px]"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-semibold rounded-[10px] neu-btn-accent transition-all duration-200"
         >
-          <Plus size={16} />
-          <span>Compose Action</span>
+          <Plus size={15} />
+          <span>Compose</span>
         </button>
       </div>
 
-      {/* ── Navigation Links ─────────────────────────────────────────────────── */}
+      {/* ── Navigation Links ────────────────────────────────────────────── */}
       <nav
-        className={`flex-1 space-y-1.5 overflow-y-auto text-left ${isMobile ? '' : 'px-3'}`}
+        className={`flex-1 overflow-y-auto text-left ${isMobile ? '' : 'px-3'}`}
       >
-        <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-4 mb-2">
+        <div
+          className="text-[10px] font-semibold uppercase tracking-widest px-3 mb-2 dark:text-zinc-500"
+          style={{ color: 'var(--color-muted)' }}
+        >
           Workspace
         </div>
-        {navigationItems.map((item) => {
-          const active = isItemActive(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={handleLinkClick}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 border-l-4 min-h-[44px] ${
-                active
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/20 text-white border-accent shadow-[0_4px_12px_rgba(99,102,241,0.15)] font-semibold'
-                  : 'text-gray-400 hover:text-gray-100 hover:bg-white/5 border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className={`${active ? 'text-accent' : 'text-gray-400'}`}>
-                  {item.icon}
-                </span>
-                <span className="text-sm">{item.label}</span>
-              </div>
-              {item.count !== undefined && item.count > 0 && (
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                    active
-                      ? 'bg-accent text-white'
-                      : 'bg-white/10 text-gray-300'
-                  }`}
-                >
-                  {item.count}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* ── System Status Card ────────────────────────────────────────────────── */}
-      <div
-        className={`border-t border-white/5 ${isMobile ? 'pt-4 mt-4' : 'p-4'}`}
-      >
-        <div className="glass-panel rounded-xl p-3 border border-white/5 text-left">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[11px] font-medium text-gray-300">
-                AI Agent Active
-              </span>
-            </div>
-            <Activity size={12} className="text-indigo-400" />
-          </div>
-
-          <p className="text-[10px] text-gray-400 leading-normal mb-2">
-            Analyzing incoming streams automatically. Gmail linked.
-          </p>
-
-          <div className="flex items-center justify-between text-[9px] text-gray-500 border-t border-white/5 pt-2">
-            <span>Provider: OpenAI</span>
-            <span>v1.0.0</span>
-          </div>
+        <div className="space-y-0.5">
+          {navigationItems.map((item) => {
+            const active = isItemActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={handleLinkClick}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[10px] transition-all duration-150 text-[13px] font-medium ${
+                  active
+                    ? 'bg-[rgba(93,107,47,0.12)] text-[var(--color-primary)] font-semibold'
+                    : 'text-[var(--color-muted)] hover:bg-[rgba(93,107,47,0.05)] dark:hover:bg-zinc-800/40 hover:text-[var(--color-ink)]'
+                }`}
+                style={{
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={`${active ? 'opacity-100' : 'opacity-70'}`}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </div>
+                {item.count !== undefined && item.count > 0 && (
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      active
+                        ? 'bg-[var(--color-primary)] text-white'
+                        : 'bg-[rgba(93,107,47,0.12)] text-[var(--color-primary)]'
+                    }`}
+                  >
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </div>
-      </div>
+      </nav>
     </div>
   );
 };

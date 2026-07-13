@@ -13,11 +13,12 @@ import {
   Flame,
   CheckCircle2,
   Trash2,
+  Receipt,
+  TrendingDown,
 } from 'lucide-react';
 import { type EmailData } from './EmailRow';
 import { useCompose } from '../context/ComposeContext';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE, authenticatedFetch } from '../config';
 
 // Detailed mock data containing body_html with potentially dangerous scripts (to verify sanitization)
 const DETAILED_MOCK_EMAILS: Record<string, EmailData & { body_html?: string }> =
@@ -68,7 +69,7 @@ const DETAILED_MOCK_EMAILS: Record<string, EmailData & { body_html?: string }> =
         <p>Hi there, your invoice for modern computing resources for the billing cycle ending June 30 is ready. Your credit card ending in 4242 will be charged <strong>$120.00 USD</strong> on July 5, 2026.</p>
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <thead>
-            <tr style="border-bottom: 2px solid #e5e7eb; text-align: left;">
+            <tr style="border-bottom: 1px solid #e5e7eb; text-align: left;">
               <th style="padding: 8px 0;">Description</th>
               <th style="padding: 8px 0; text-align: right;">Amount</th>
             </tr>
@@ -184,13 +185,16 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
   >({
     queryKey: ['email-detail', emailId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/emails/${emailId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(
+        `${API_BASE}/api/emails/${emailId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        }
+      );
       if (!response.ok) {
         throw new Error('API Details endpoint failed');
       }
@@ -208,9 +212,12 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
   const { data: calendarStatus } = useQuery<{ connected: boolean }>({
     queryKey: ['calendar-status'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/api/integrations/google_calendar/status`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(
+        `${API_BASE}/api/integrations/google_calendar/status`,
+        {
+          credentials: 'include',
+        }
+      );
       if (!response.ok) return { connected: false };
       return response.json();
     },
@@ -219,25 +226,31 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
   const { data: calendarEvents, refetch: refetchEvents } = useQuery<any[]>({
     queryKey: ['email-calendar-events', emailId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/api/actions/calendar/events/${emailId}`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(
+        `${API_BASE}/api/actions/calendar/events/${emailId}`,
+        {
+          credentials: 'include',
+        }
+      );
       if (!response.ok) return [];
       return response.json();
     },
   });
 
   const [syncingCalendar, setSyncingCalendar] = useState(false);
-  
+
   const triggerCalendarSync = async () => {
     setSyncingCalendar(true);
     try {
-      const response = await fetch(`${API_BASE}/api/actions/calendar/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emailId }),
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(
+        `${API_BASE}/api/actions/calendar/events`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emailId }),
+          credentials: 'include',
+        }
+      );
       if (response.ok) {
         refetchEvents();
       } else {
@@ -254,9 +267,12 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
 
   const connectCalendar = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/integrations/google_calendar/auth`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(
+        `${API_BASE}/api/integrations/google_calendar/auth`,
+        {
+          credentials: 'include',
+        }
+      );
       if (response.ok) {
         const { url } = await response.json();
         window.location.href = url;
@@ -266,6 +282,47 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
     } catch (e) {
       console.error(e);
       alert('Error connecting to calendar authentication endpoint');
+    }
+  };
+
+  // Load expenses for this email
+  const { data: expenses, refetch: refetchExpenses } = useQuery<any[]>({
+    queryKey: ['email-expenses', emailId],
+    queryFn: async () => {
+      const response = await authenticatedFetch(
+        `${API_BASE}/api/expenses/email/${emailId}`,
+        {
+          credentials: 'include',
+        }
+      );
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  const [extractingExpense, setExtractingExpense] = useState(false);
+
+  const triggerExpenseExtraction = async () => {
+    setExtractingExpense(true);
+    try {
+      const response = await authenticatedFetch(
+        `${API_BASE}/api/expenses/extract/${emailId}`,
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      );
+      if (response.ok) {
+        refetchExpenses();
+      } else {
+        const err = await response.json();
+        alert(err.error || 'No expense data could be parsed from this email.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error triggering expense extraction.');
+    } finally {
+      setExtractingExpense(false);
     }
   };
 
@@ -279,15 +336,35 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse select-none">
-        <div className="h-6 w-32 bg-white/5 rounded-lg mb-6" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 glass rounded-2xl p-6 border border-white/5 space-y-6">
-            <div className="h-8 w-3/4 bg-white/10 rounded-lg" />
-            <div className="h-10 w-full bg-white/5 rounded-lg" />
-            <div className="h-48 w-full bg-white/5 rounded-2xl" />
+      <div className="space-y-5 animate-pulse select-none">
+        <div
+          className="h-8 w-36"
+          style={{ backgroundColor: '#e5e5e5', border: '1px solid #bbb' }}
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div
+            className="lg:col-span-2 p-6 space-y-5"
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid #111',
+              boxShadow: '6px 6px 0 #111',
+            }}
+          >
+            <div className="h-8 w-3/4" style={{ backgroundColor: '#e0e0e0' }} />
+            <div className="h-10 w-full" style={{ backgroundColor: '#eee' }} />
+            <div
+              className="h-48 w-full"
+              style={{ backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}
+            />
           </div>
-          <div className="glass rounded-2xl p-6 border border-white/5 h-64 bg-white/[0.02]" />
+          <div
+            className="p-5 h-64"
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid #111',
+              boxShadow: '6px 6px 0 #111',
+            }}
+          />
         </div>
       </div>
     );
@@ -295,17 +372,44 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
 
   if (isError && !email) {
     return (
-      <div className="glass rounded-2xl p-8 border border-rose-500/20 text-center flex flex-col items-center justify-center gap-3">
-        <AlertTriangle size={32} className="text-rose-400" />
-        <h4 className="text-sm font-semibold text-white">
+      <div
+        className="p-8 text-center flex flex-col items-center justify-center gap-4 rounded-[22px]"
+        style={{
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid rgba(217,104,87,.20)',
+          boxShadow: '0 4px 20px rgba(217,104,87,.10)',
+        }}
+      >
+        <AlertTriangle size={32} style={{ color: 'var(--color-danger)' }} />
+        <h4
+          className="text-[14px] font-semibold"
+          style={{ color: 'var(--color-ink)' }}
+        >
           Ingest Details Missing
         </h4>
-        <p className="text-xs text-gray-400">
+        <p className="text-[12px]" style={{ color: 'var(--color-muted)' }}>
           Failed to retrieve raw mail and context parameters.
         </p>
         <button
           onClick={onBack}
-          className="px-4 py-2 rounded-lg bg-white/5 text-gray-200 border border-white/5 text-xs font-semibold hover:bg-white/10 transition-all flex items-center gap-1.5"
+          className="px-4 py-2 text-[13px] font-medium flex items-center gap-1.5 transition-all rounded-[10px]"
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-sm)',
+            color: 'var(--color-muted)',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.borderColor =
+              'var(--color-primary)';
+            (e.currentTarget as HTMLElement).style.color =
+              'var(--color-primary)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.borderColor =
+              'var(--color-border)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--color-muted)';
+          }}
         >
           <ArrowLeft size={12} />
           <span>Back to Ingests</span>
@@ -317,7 +421,7 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
   // Sanitize the HTML body using DOMPurify before dangerously setting innerHTML
   const rawBodyHtml =
     email.body_html ||
-    `<div style="font-family: sans-serif; white-space: pre-wrap; color: #d1d5db; line-height: 1.6;">${email.body_text || email.body || ''}</div>`;
+    `<div style="font-family: sans-serif; white-space: pre-wrap; color: #333; line-height: 1.6;">${email.body_text || email.body || ''}</div>`;
   const sanitizedHtml = DOMPurify.sanitize(rawBodyHtml, {
     ALLOWED_TAGS: [
       'div',
@@ -404,58 +508,121 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
   })();
 
   return (
-    <div className="space-y-6">
-      {/* ── Header Action Bar ────────────────────────────────────────────────────── */}
+    <div className="space-y-5">
+      {/* ── Header Action Bar ─────────────────────────────── */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5 transition-all text-xs font-semibold min-h-[44px] min-w-[44px]"
+          className="flex items-center gap-2 px-3 py-2 text-[13px] font-medium min-h-[40px] transition-all rounded-[10px]"
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-sm)',
+            color: 'var(--color-muted)',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.borderColor =
+              'var(--color-primary)';
+            (e.currentTarget as HTMLElement).style.color =
+              'var(--color-primary)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.borderColor =
+              'var(--color-border)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--color-muted)';
+          }}
         >
           <ArrowLeft size={14} />
           <span>Back to Inbound</span>
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-500 font-semibold tracking-wider uppercase bg-white/5 px-2.5 py-1 rounded border border-white/5">
-            Ingest ID: {email.id}
+          <span
+            className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+            style={{
+              backgroundColor: 'rgba(93,107,47,.10)',
+              color: 'var(--color-primary)',
+            }}
+          >
+            ID: {email.id}
           </span>
         </div>
       </div>
 
-      {/* ── Main Split Panel Layout ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* ── Left Column: Email Content Viewport ────────────────────────────────── */}
-        <section className="lg:col-span-2 glass rounded-3xl border border-white/5 overflow-hidden shadow-2xl flex flex-col min-h-[500px]">
+      {/* ── Main Split Panel Layout ─────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* ── Left Column: Email Content Viewport ─── */}
+        <section
+          className="lg:col-span-2 overflow-hidden flex flex-col min-h-[500px] rounded-[22px]"
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
           {/* Ingest metadata header */}
-          <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01]">
-            <h1 className="text-base font-bold text-white mb-3 tracking-tight">
+          <div
+            className="px-6 py-5"
+            style={{
+              borderBottom: '1px solid var(--color-border)',
+              backgroundColor: 'rgba(93,107,47,.04)',
+            }}
+          >
+            <h1
+              className="text-[16px] font-semibold mb-3"
+              style={{ color: 'var(--color-ink)' }}
+            >
               {email.subject}
             </h1>
 
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 text-sm font-semibold shrink-0">
+                <div
+                  className="w-9 h-9 flex items-center justify-center text-sm font-bold shrink-0 rounded-full"
+                  style={{
+                    backgroundColor: 'var(--color-primary)',
+                    color: '#fff',
+                  }}
+                >
                   <User size={16} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-200 truncate">
+                  <p
+                    className="text-xs font-bold truncate"
+                    style={{
+                      color: 'var(--color-ink)',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
                     {email.sender_name || email.sender.split('@')[0]}
                   </p>
-                  <p className="text-[10px] text-gray-500 truncate mt-0.5">
+                  <p
+                    className="text-[10px] truncate mt-0.5"
+                    style={{ color: '#555', fontFamily: 'var(--font-mono)' }}
+                  >
                     {email.sender}
                   </p>
                 </div>
               </div>
 
               <div className="text-left sm:text-right shrink-0">
-                <p className="text-[10px] text-gray-400 font-medium">
+                <p
+                  className="text-[10px] font-medium"
+                  style={{ color: '#555', fontFamily: 'var(--font-mono)' }}
+                >
                   {email.received_at
                     ? new Date(email.received_at).toLocaleString()
                     : email.createdAt
                       ? new Date(email.createdAt).toLocaleString()
                       : email.received || 'Recently'}
                 </p>
-                <p className="text-[9px] text-indigo-400 font-semibold mt-0.5">
+                <p
+                  className="text-[9px] font-bold mt-0.5"
+                  style={{
+                    color: 'var(--color-accent-cta)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
                   to: {email.recipient || 'me@inboxos.dev'}
                 </p>
               </div>
@@ -463,122 +630,282 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
           </div>
 
           {/* Sanitized HTML Body Frame */}
-          <div className="p-6 flex-1 bg-white/5 overflow-y-auto">
+          <div
+            className="p-6 flex-1 overflow-y-auto"
+            style={{ backgroundColor: '#FAFAF7' }}
+          >
             <div
-              className="prose prose-invert max-w-none text-gray-300 text-xs leading-relaxed"
+              className="prose max-w-none text-xs leading-relaxed"
+              style={{ color: '#222' }}
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
           </div>
         </section>
 
-        {/* ── Right Column: AI Insights Sidebar ────────────────────────────────── */}
-        <aside className="space-y-6">
-          {/* AI Panel Wrapper - Elevated Background & Glass style */}
-          <div className="glass bg-bg-elevated/75 border border-white/5 rounded-3xl p-5 shadow-2xl space-y-5">
-            {/* Header branding */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-white/5">
+        {/* ── Right Column: AI Insights Sidebar ─── */}
+        <aside className="space-y-4">
+          {/* AI Panel Wrapper */}
+          <div
+            className="p-5 space-y-5 rounded-[22px]"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between pb-3"
+              style={{ borderBottom: '1px solid var(--color-border)' }}
+            >
               <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-indigo-400" />
-                <h3 className="text-xs font-bold text-white tracking-wide uppercase">
+                <Sparkles size={15} style={{ color: 'var(--color-primary)' }} />
+                <h3
+                  className="text-[13px] font-semibold"
+                  style={{ color: 'var(--color-ink)' }}
+                >
                   AI Decision Analysis
                 </h3>
               </div>
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span
+                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                  style={{ backgroundColor: 'var(--color-success)' }}
+                ></span>
+                <span
+                  className="relative inline-flex h-2 w-2 rounded-full"
+                  style={{ backgroundColor: 'var(--color-success)' }}
+                ></span>
               </span>
             </div>
 
-            {/* AI Summary Section */}
+            {/* AI Summary */}
             <div className="space-y-2">
-              <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              <h4
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: '#666', fontFamily: 'var(--font-body)' }}
+              >
                 One-Sentence Summary
               </h4>
-              <div className="glass-panel p-3.5 rounded-2xl border border-white/5 bg-indigo-500/[0.01]">
-                <p className="text-xs text-gray-200 leading-normal">
+              <div
+                className="p-3"
+                style={{
+                  backgroundColor: '#FFFDF5',
+                  border: '1px solid var(--color-ink)',
+                }}
+              >
+                <p
+                  className="text-xs leading-normal"
+                  style={{
+                    color: 'var(--color-ink)',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
                   {email.analysis?.summary ||
                     'AI system has classified this thread. Action items extracted below.'}
                 </p>
               </div>
             </div>
 
-            {/* AI Decision Parameters / Metrics */}
-            <div className="space-y-2.5">
-              <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+            {/* Decision Metrics */}
+            <div className="space-y-2">
+              <h4
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: '#666', fontFamily: 'var(--font-body)' }}
+              >
                 Decision Metrics
               </h4>
               <div className="grid grid-cols-3 gap-2">
-                <div className="glass-panel p-2.5 rounded-xl border border-white/5 text-center">
-                  <Flame size={14} className="text-rose-400 mx-auto mb-1.5" />
-                  <p className="text-[9px] text-gray-400">Priority</p>
-                  <p className="text-xs font-extrabold text-white mt-0.5">
-                    {priorityScore}/100
-                  </p>
-                </div>
-
-                <div className="glass-panel p-2.5 rounded-xl border border-white/5 text-center">
-                  <Clock size={14} className="text-amber-400 mx-auto mb-1.5" />
-                  <p className="text-[9px] text-gray-400">Urgency</p>
-                  <p className="text-xs font-extrabold text-white mt-0.5">
-                    {email.analysis?.urgency_score || 50}/100
-                  </p>
-                </div>
-
-                <div className="glass-panel p-2.5 rounded-xl border border-white/5 text-center">
-                  <ClipboardList
-                    size={14}
-                    className="text-indigo-400 mx-auto mb-1.5"
-                  />
-                  <p className="text-[9px] text-gray-400">Action</p>
-                  <p className="text-xs font-extrabold text-white mt-0.5">
-                    {email.analysis?.actionability_score || 50}/100
-                  </p>
-                </div>
+                {[
+                  {
+                    icon: <Flame size={13} />,
+                    label: 'Priority',
+                    value: `${priorityScore}`,
+                    color: 'var(--color-danger)',
+                  },
+                  {
+                    icon: <Clock size={13} />,
+                    label: 'Urgency',
+                    value: `${email.analysis?.urgency_score || 50}`,
+                    color: 'var(--color-warning)',
+                  },
+                  {
+                    icon: <ClipboardList size={13} />,
+                    label: 'Action',
+                    value: `${email.analysis?.actionability_score || 50}`,
+                    color: 'var(--color-info)',
+                  },
+                ].map(({ icon, label, value, color }) => (
+                  <div
+                    key={label}
+                    className="p-2 text-center rounded-[12px]"
+                    style={{
+                      backgroundColor: `${color}1A`,
+                      border: `1px solid ${color}30`,
+                    }}
+                  >
+                    <div
+                      className="mx-auto mb-1 flex justify-center"
+                      style={{ color }}
+                    >
+                      {icon}
+                    </div>
+                    <p
+                      className="text-[10px] font-medium"
+                      style={{ color: 'var(--color-muted)' }}
+                    >
+                      {label}
+                    </p>
+                    <p
+                      className="text-[13px] font-bold mt-0.5"
+                      style={{ color }}
+                    >
+                      {value}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Extracted Action Items List */}
-            <div className="space-y-2.5">
-              <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+            {/* Extracted Deadlines */}
+            {email.analysis?.deadlines &&
+              email.analysis.deadlines.length > 0 && (
+                <div
+                  className="space-y-2"
+                  style={{
+                    borderTop: '1px solid var(--color-border)',
+                    paddingTop: '14px',
+                  }}
+                >
+                  <h4
+                    className="text-[11px] font-medium flex items-center gap-1.5"
+                    style={{ color: 'var(--color-muted)' }}
+                  >
+                    <Calendar
+                      size={11}
+                      style={{ color: 'var(--color-primary)' }}
+                    />
+                    <span>Deadlines</span>
+                  </h4>
+                  <div className="space-y-1.5">
+                    {email.analysis.deadlines.map(
+                      (deadlineStr: string, idx: number) => {
+                        const formattedDate = (() => {
+                          try {
+                            const date = new Date(deadlineStr);
+                            if (isNaN(date.getTime())) return deadlineStr;
+                            return date.toLocaleString();
+                          } catch {
+                            return deadlineStr;
+                          }
+                        })();
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 p-2.5 rounded-[10px]"
+                            style={{
+                              backgroundColor: 'rgba(217,164,65,.08)',
+                              border: '1px solid rgba(217,164,65,.20)',
+                            }}
+                          >
+                            <Calendar
+                              size={13}
+                              className="shrink-0"
+                              style={{ color: 'var(--color-warning)' }}
+                            />
+                            <div className="min-w-0">
+                              <p
+                                className="text-[12px] leading-normal font-medium"
+                                style={{ color: 'var(--color-ink)' }}
+                              >
+                                {formattedDate}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* Extracted Action Items */}
+            <div
+              className="space-y-2"
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                paddingTop: '14px',
+              }}
+            >
+              <h4
+                className="text-[11px] font-medium"
+                style={{ color: 'var(--color-muted)' }}
+              >
                 Extracted Action Items
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {actionItems.map((action, idx) => {
                   const isChecked = checkedActions[idx];
                   return (
                     <div
                       key={idx}
                       onClick={() => toggleAction(idx)}
-                      className={`flex items-start gap-3 p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                        isChecked
-                          ? 'bg-emerald-500/[0.03] border-emerald-500/20 text-gray-500'
-                          : 'bg-white/5 border-white/5 text-gray-200 hover:border-white/10 hover:bg-white/10'
-                      }`}
+                      className="flex items-start gap-3 p-3 cursor-pointer rounded-[10px] transition-all"
+                      style={{
+                        backgroundColor: isChecked
+                          ? 'rgba(63,167,106,.10)'
+                          : 'var(--color-surface)',
+                        border: `1px solid ${isChecked ? 'rgba(63,167,106,.25)' : 'var(--color-border)'}`,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isChecked) {
+                          (e.currentTarget as HTMLElement).style.borderColor =
+                            'var(--color-primary)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isChecked) {
+                          (e.currentTarget as HTMLElement).style.borderColor =
+                            'var(--color-border)';
+                        }
+                      }}
                     >
                       <button
                         type="button"
-                        className={`mt-0.5 shrink-0 ${isChecked ? 'text-emerald-400' : 'text-gray-500'}`}
+                        className="mt-0.5 shrink-0"
+                        style={{
+                          color: isChecked
+                            ? 'var(--color-success)'
+                            : 'var(--color-muted)',
+                        }}
                       >
                         {isChecked ? (
-                          <CheckCircle2
-                            size={14}
-                            fill="currentColor"
-                            className="text-emerald-500"
-                          />
+                          <CheckCircle2 size={14} fill="currentColor" />
                         ) : (
                           <CheckSquare size={14} />
                         )}
                       </button>
                       <div className="min-w-0">
                         <p
-                          className={`text-xs leading-normal ${isChecked ? 'line-through text-gray-500' : 'text-gray-200'}`}
+                          className="text-[12px] leading-normal"
+                          style={{
+                            textDecoration: isChecked ? 'line-through' : 'none',
+                            color: isChecked
+                              ? 'var(--color-muted)'
+                              : 'var(--color-ink)',
+                          }}
                         >
                           {action.desc}
                         </p>
                         <span
-                          className={`text-[9px] font-semibold flex items-center gap-1.5 mt-1.5 ${isChecked ? 'text-gray-500' : 'text-indigo-400'}`}
+                          className="text-[10px] flex items-center gap-1.5 mt-1"
+                          style={{
+                            color: isChecked
+                              ? 'var(--color-success)'
+                              : 'var(--color-primary)',
+                          }}
                         >
-                          <Calendar size={10} />
+                          <Calendar size={9} />
                           <span>{action.date}</span>
                         </span>
                       </div>
@@ -588,60 +915,115 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
               </div>
             </div>
 
-            {/* Upcoming Meetings Section */}
-            <div className="space-y-2.5 border-t border-white/5 pt-4">
+            {/* Upcoming Meetings */}
+            <div
+              className="space-y-2"
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                paddingTop: '14px',
+              }}
+            >
               <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Calendar size={12} className="text-indigo-400" />
+                <h4
+                  className="text-[11px] font-medium flex items-center gap-1.5"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  <Calendar
+                    size={11}
+                    style={{ color: 'var(--color-primary)' }}
+                  />
                   <span>Upcoming Meetings</span>
                 </h4>
                 {calendarStatus?.connected && (
                   <button
                     onClick={triggerCalendarSync}
                     disabled={syncingCalendar}
-                    className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold transition-colors disabled:opacity-50"
+                    className="text-[11px] font-medium disabled:opacity-50"
+                    style={{ color: 'var(--color-primary)' }}
                   >
-                    {syncingCalendar ? 'Syncing...' : 'Extract & Sync'}
+                    {syncingCalendar ? 'Syncing...' : 'Sync +'}
                   </button>
                 )}
               </div>
 
               {!calendarStatus?.connected ? (
-                <div className="glass-panel p-3.5 rounded-2xl border border-rose-500/20 bg-rose-500/[0.02] space-y-2 text-center">
-                  <p className="text-[11px] text-rose-300 leading-normal">
-                    Google Calendar is not linked. Connect to sync meetings.
+                <div
+                  className="p-3 space-y-2 text-center rounded-[12px]"
+                  style={{
+                    backgroundColor: 'rgba(217,104,87,.06)',
+                    border: '1px solid rgba(217,104,87,.20)',
+                  }}
+                >
+                  <p
+                    className="text-[11px] leading-normal"
+                    style={{ color: 'var(--color-danger)' }}
+                  >
+                    Google Calendar not linked.
                   </p>
                   <button
                     onClick={connectCalendar}
-                    className="w-full py-1.5 text-[10px] font-bold rounded-lg bg-rose-500 hover:bg-rose-600 text-white transition-colors"
+                    className="w-full py-1.5 text-[12px] font-medium rounded-[8px]"
+                    style={{
+                      backgroundColor: 'var(--color-danger)',
+                      color: '#fff',
+                    }}
                   >
                     Link Google Calendar
                   </button>
                 </div>
               ) : calendarEvents && calendarEvents.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {calendarEvents.map((evt, idx) => {
                     const isPending = evt.status === 'pending';
                     const isFailed = evt.status === 'failed';
+                    const statusColor = isPending
+                      ? 'var(--color-warning)'
+                      : isFailed
+                        ? 'var(--color-danger)'
+                        : 'var(--color-success)';
                     return (
-                      <div key={idx} className="glass-panel p-3 rounded-xl border border-white/5 space-y-2 bg-indigo-500/[0.01]">
+                      <div
+                        key={idx}
+                        className="p-3 space-y-2 rounded-[12px]"
+                        style={{
+                          backgroundColor: 'var(--color-surface)',
+                          border: '1px solid var(--color-border)',
+                          boxShadow: 'var(--shadow-sm)',
+                        }}
+                      >
                         <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-semibold text-white leading-normal truncate">{evt.title}</p>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
-                            isPending ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20' :
-                            isFailed ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                            'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          }`}>
-                            {isPending ? 'Sync Pending' : isFailed ? 'Failed' : 'Synced'}
+                          <p
+                            className="text-[12px] font-medium leading-normal truncate"
+                            style={{ color: 'var(--color-ink)' }}
+                          >
+                            {evt.title}
+                          </p>
+                          <span
+                            className="text-[10px] px-2 py-0.5 font-medium rounded-full shrink-0"
+                            style={{
+                              backgroundColor: `${statusColor}1A`,
+                              color: statusColor,
+                            }}
+                          >
+                            {isPending
+                              ? 'Pending'
+                              : isFailed
+                                ? 'Failed'
+                                : 'Synced'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-gray-400 space-y-1">
+                        <div
+                          className="text-[11px] space-y-1"
+                          style={{ color: 'var(--color-muted)' }}
+                        >
                           <p className="flex items-center gap-1.5">
-                            <Clock size={10} className="shrink-0" />
-                            <span>{new Date(evt.startTime).toLocaleString()}</span>
+                            <Clock size={10} />
+                            <span>
+                              {new Date(evt.startTime).toLocaleString()}
+                            </span>
                           </p>
                           {evt.location && (
-                            <p className="truncate text-left">📍 {evt.location}</p>
+                            <p className="truncate">📍 {evt.location}</p>
                           )}
                         </div>
                         {evt.meetingLink && (
@@ -649,9 +1031,13 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
                             href={evt.meetingLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex w-full justify-center items-center py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold transition-colors"
+                            className="inline-flex w-full justify-center items-center py-1.5 text-[12px] font-medium rounded-[8px]"
+                            style={{
+                              backgroundColor: 'var(--color-primary)',
+                              color: '#fff',
+                            }}
                           >
-                            Join Meeting Link
+                            Join Meeting
                           </a>
                         )}
                       </div>
@@ -659,14 +1045,27 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
                   })}
                 </div>
               ) : (
-                <div className="glass-panel p-3.5 rounded-2xl border border-white/5 text-center bg-white/[0.01]">
-                  <p className="text-[11px] text-gray-400 leading-normal mb-2">
-                    No calendar events extracted for this email yet.
+                <div
+                  className="p-3 text-center rounded-[12px]"
+                  style={{
+                    backgroundColor: 'rgba(93,107,47,.04)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  <p
+                    className="text-[11px] leading-normal mb-2"
+                    style={{ color: 'var(--color-muted)' }}
+                  >
+                    No calendar events extracted yet.
                   </p>
                   <button
                     onClick={triggerCalendarSync}
                     disabled={syncingCalendar}
-                    className="py-1.5 px-4 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
+                    className="py-1.5 px-4 text-[12px] font-medium rounded-[8px] disabled:opacity-50"
+                    style={{
+                      backgroundColor: 'var(--color-primary)',
+                      color: '#fff',
+                    }}
                   >
                     {syncingCalendar ? 'Extracting...' : 'Extract & Create'}
                   </button>
@@ -674,14 +1073,259 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
               )}
             </div>
 
-            {/* Reply Assist Draft suggestion */}
+            {/* Extracted Expenses */}
+            <div
+              className="space-y-2"
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                paddingTop: '14px',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <h4
+                  className="text-[11px] font-medium flex items-center gap-1.5"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  <Receipt
+                    size={11}
+                    style={{ color: 'var(--color-success)' }}
+                  />
+                  <span>Extracted Expenses</span>
+                </h4>
+                {expenses && expenses.length > 0 && (
+                  <button
+                    onClick={triggerExpenseExtraction}
+                    disabled={extractingExpense}
+                    className="text-[11px] font-medium disabled:opacity-50"
+                    style={{ color: 'var(--color-success)' }}
+                  >
+                    {extractingExpense ? 'Re-extracting...' : 'Re-extract'}
+                  </button>
+                )}
+              </div>
+
+              {expenses && expenses.length > 0 ? (
+                <div className="space-y-1.5">
+                  {expenses.map((exp, idx) => {
+                    const isRecur = exp.isRecurring;
+                    const displaySymbol =
+                      exp.currency === 'JPY'
+                        ? '¥'
+                        : exp.currency === 'EUR'
+                          ? '€'
+                          : exp.currency === 'GBP'
+                            ? '£'
+                            : '$';
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 space-y-2 rounded-[12px]"
+                        style={{
+                          backgroundColor: 'rgba(63,167,106,.06)',
+                          border: '1px solid rgba(63,167,106,.18)',
+                        }}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <p
+                              className="text-[12px] font-medium leading-normal truncate max-w-[120px]"
+                              style={{ color: 'var(--color-ink)' }}
+                            >
+                              {exp.merchantName || 'Unknown Merchant'}
+                            </p>
+                            <span
+                              className="text-[10px] font-medium"
+                              style={{ color: 'var(--color-muted)' }}
+                            >
+                              {exp.category || 'other'}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            {isRecur && (
+                              <span
+                                className="text-[9px] px-1.5 py-0.5 font-semibold rounded-full flex items-center gap-0.5"
+                                style={{
+                                  backgroundColor: 'rgba(63,167,106,.15)',
+                                  color: 'var(--color-success)',
+                                }}
+                              >
+                                <TrendingDown size={8} /> Recurring
+                              </span>
+                            )}
+                            <span
+                              className="text-[10px]"
+                              style={{
+                                color: 'var(--color-muted)',
+                                fontFamily: 'var(--font-mono)',
+                              }}
+                            >
+                              {exp.paymentMethod || 'Unknown'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          className="flex justify-between items-center p-2 rounded-[8px]"
+                          style={{
+                            backgroundColor: 'var(--color-surface)',
+                            border: '1px solid var(--color-border)',
+                          }}
+                        >
+                          <div>
+                            <span
+                              className="text-xs font-bold"
+                              style={{
+                                fontFamily: 'var(--font-display)',
+                                color: 'var(--color-ink)',
+                              }}
+                            >
+                              {displaySymbol}
+                              {exp.amount?.toFixed(2)}
+                            </span>
+                            <span
+                              className="text-[10px] font-mono ml-1"
+                              style={{ color: '#666' }}
+                            >
+                              {exp.currency}
+                            </span>
+                          </div>
+                          {exp.currency !== 'USD' && exp.amountUsd && (
+                            <span
+                              className="text-[9px]"
+                              style={{
+                                color: '#888',
+                                fontFamily: 'var(--font-mono)',
+                              }}
+                            >
+                              ~${exp.amountUsd.toFixed(2)} USD
+                            </span>
+                          )}
+                        </div>
+
+                        <div
+                          className="text-[9px] flex justify-between"
+                          style={{
+                            color: '#888',
+                            fontFamily: 'var(--font-mono)',
+                          }}
+                        >
+                          <span>
+                            Tx:{' '}
+                            {exp.date
+                              ? new Date(exp.date).toLocaleDateString()
+                              : 'N/A'}
+                          </span>
+                        </div>
+
+                        {exp.items &&
+                          Array.isArray(exp.items) &&
+                          exp.items.length > 0 && (
+                            <div
+                              className="mt-1 space-y-1"
+                              style={{
+                                borderTop: '1.5px solid var(--color-ink)',
+                                paddingTop: '8px',
+                              }}
+                            >
+                              <p
+                                className="text-[8px] font-bold uppercase tracking-wide"
+                                style={{ color: '#888' }}
+                              >
+                                Line Items
+                              </p>
+                              <div className="max-h-[100px] overflow-y-auto pr-1 space-y-1">
+                                {exp.items.map((item: any, i: number) => (
+                                  <div
+                                    key={i}
+                                    className="flex justify-between text-[10px] px-2 py-0.5"
+                                    style={{
+                                      backgroundColor: '#f0f0f0',
+                                      color: '#444',
+                                      fontFamily: 'var(--font-mono)',
+                                    }}
+                                  >
+                                    <span className="truncate max-w-[130px]">
+                                      {item.name}
+                                      {item.quantity > 1
+                                        ? ` x${item.quantity}`
+                                        : ''}
+                                    </span>
+                                    <span
+                                      className="font-bold shrink-0"
+                                      style={{ color: 'var(--color-ink)' }}
+                                    >
+                                      {displaySymbol}
+                                      {item.unitPrice
+                                        ? item.unitPrice.toFixed(2)
+                                        : '0.00'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div
+                  className="p-3 text-center"
+                  style={{
+                    backgroundColor: '#f9f9f9',
+                    border: '1px solid var(--color-ink)',
+                  }}
+                >
+                  <p
+                    className="text-[11px] leading-normal mb-2"
+                    style={{ color: '#666', fontFamily: 'var(--font-body)' }}
+                  >
+                    No expense data extracted yet.
+                  </p>
+                  <button
+                    onClick={triggerExpenseExtraction}
+                    disabled={extractingExpense}
+                    className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                    style={{
+                      backgroundColor: 'var(--color-success)',
+                      border: '1px solid var(--color-ink)',
+                      color: '#fff',
+                    }}
+                  >
+                    {extractingExpense
+                      ? 'Extracting...'
+                      : 'Detect & Extract Expense'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Reply Draft Suggestion */}
             {email.analysis?.suggested_reply && (
-              <div className="space-y-2.5 border-t border-white/5 pt-4">
-                <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              <div
+                className="space-y-2"
+                style={{
+                  borderTop: '1px solid var(--color-ink)',
+                  paddingTop: '16px',
+                }}
+              >
+                <h4
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: '#666', fontFamily: 'var(--font-body)' }}
+                >
                   AI Draft Suggestion
                 </h4>
-                <div className="glass-panel p-3.5 rounded-2xl border border-white/5 bg-indigo-500/[0.01]">
-                  <p className="text-[11px] text-gray-300 italic leading-relaxed">
+                <div
+                  className="p-3"
+                  style={{
+                    backgroundColor: '#F0F5FF',
+                    border: '1px solid var(--color-ink)',
+                  }}
+                >
+                  <p
+                    className="text-[11px] italic leading-relaxed"
+                    style={{ color: '#444', fontFamily: 'var(--font-body)' }}
+                  >
                     "{email.analysis.suggested_reply}"
                   </p>
                 </div>
@@ -699,13 +1343,46 @@ export const EmailViewer: React.FC<EmailViewerProps> = ({
                   body: email.analysis?.suggested_reply || '',
                 })
               }
-              className="flex-1 py-3.5 text-xs font-semibold rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-center transition-all glow-accent min-h-[44px]"
+              className="flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center transition-all min-h-[44px]"
+              style={{
+                backgroundColor: 'var(--color-accent-cta)',
+                border: '1px solid var(--color-ink)',
+                boxShadow: 'var(--shadow-offset-sm)',
+                color: '#fff',
+                fontFamily: 'var(--font-body)',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                (e.currentTarget as HTMLElement).style.transform =
+                  'translate(4px,4px)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.boxShadow =
+                  'var(--shadow-offset-sm)';
+                (e.currentTarget as HTMLElement).style.transform = '';
+              }}
             >
               Reply Draft
             </button>
             <button
               onClick={() => alert('Archived Inbound.')}
-              className="px-4 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5 transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="px-4 py-3 flex items-center justify-center min-h-[44px] min-w-[44px] transition-all"
+              style={{
+                backgroundColor: 'var(--color-surface)',
+                border: '1px solid var(--color-ink)',
+                boxShadow: 'var(--shadow-offset-sm)',
+                color: 'var(--color-ink)',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                (e.currentTarget as HTMLElement).style.transform =
+                  'translate(4px,4px)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.boxShadow =
+                  'var(--shadow-offset-sm)';
+                (e.currentTarget as HTMLElement).style.transform = '';
+              }}
             >
               <Trash2 size={16} />
             </button>

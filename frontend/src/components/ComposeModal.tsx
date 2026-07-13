@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCompose } from '../context/ComposeContext';
 import { Button } from './Button';
 import {
@@ -15,6 +16,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from 'lucide-react';
+import { API_BASE, authenticatedFetch } from '../config';
 
 interface FormInputs {
   to: string;
@@ -22,8 +24,6 @@ interface FormInputs {
   subject: string;
   body: string;
 }
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export const ComposeModal: React.FC = () => {
   const { isOpen, initialValues, closeCompose } = useCompose();
@@ -40,15 +40,9 @@ export const ComposeModal: React.FC = () => {
     reset,
     formState: { errors },
   } = useForm<FormInputs>({
-    defaultValues: {
-      to: '',
-      cc: '',
-      subject: '',
-      body: '',
-    },
+    defaultValues: { to: '', cc: '', subject: '', body: '' },
   });
 
-  // Load initial values (e.g. if replying)
   useEffect(() => {
     if (isOpen) {
       reset({
@@ -60,33 +54,25 @@ export const ComposeModal: React.FC = () => {
     }
   }, [isOpen, initialValues, reset]);
 
-  if (!isOpen) return null;
-
-  // Insert markdown symbols into body text area
   const insertMarkdown = (symbol: string) => {
     const textarea = document.getElementById(
       'compose-body'
     ) as HTMLTextAreaElement;
     if (!textarea) return;
-
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const text = textarea.value;
     const before = text.substring(0, start);
     const selected = text.substring(start, end);
     const after = text.substring(end);
-
     let replacement = '';
     if (symbol === 'bold') replacement = `**${selected || 'bold text'}**`;
     else if (symbol === 'italic')
       replacement = `*${selected || 'italic text'}*`;
     else if (symbol === 'code') replacement = `\`${selected || 'code'}\``;
     else if (symbol === 'list') replacement = `\n- ${selected || 'list item'}`;
-
     const newText = before + replacement + after;
     setValue('body', newText);
-
-    // Restore selection focus
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(
@@ -96,54 +82,36 @@ export const ComposeModal: React.FC = () => {
     }, 50);
   };
 
-  // AI Draft Assistance Handler
   const triggerAiDraft = async () => {
     setIsAiLoading(true);
-
-    // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
-
     const toVal = getValues('to') || 'Recipient';
     const subVal = getValues('subject') || 'General Request';
     const name = toVal.split('@')[0];
-
     const generatedDraft = `Hi ${name.charAt(0).toUpperCase() + name.slice(1)},\n\nThank you for reaching out regarding "${subVal}". I wanted to let you know that I have received your request and will review the details shortly.\n\nI will get back to you coordinate next steps as soon as possible.\n\nBest regards,\nAlex Carter`;
-
     setValue('body', generatedDraft);
     setIsAiLoading(false);
   };
 
-  // Form submit handler
   const onSubmit = async (formData: FormInputs) => {
     setIsSending(true);
-
     try {
-      const response = await fetch(`${API_BASE}/api/emails/send`, {
+      const response = await authenticatedFetch(`${API_BASE}/api/emails/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
         credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Endpoint send offline');
-      }
-
+      if (!response.ok) throw new Error('Endpoint send offline');
       setToastMessage('Email dispatched successfully!');
     } catch (err) {
       console.warn(
-        '[ComposeModal] POST /api/emails/send failed. Performing fallback mock dispatch.',
+        '[ComposeModal] POST /api/emails/send failed. Fallback mock dispatch.',
         err
       );
-
-      // Fallback local success toast (for offline demo capability)
       setToastMessage('Email dispatched successfully! (Mock pipeline)');
     } finally {
       setIsSending(false);
-
-      // Keep toast visible for 2.5 seconds, then close modal
       setTimeout(() => {
         setToastMessage(null);
         closeCompose();
@@ -151,223 +119,342 @@ export const ComposeModal: React.FC = () => {
     }
   };
 
+  const toolbarBtnStyle: React.CSSProperties = {
+    padding: '5px 8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    border: '1px solid transparent',
+    color: 'var(--color-muted)',
+    cursor: 'pointer',
+    borderRadius: '6px',
+    minHeight: '30px',
+    minWidth: '30px',
+    transition: 'all 0.15s',
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* ── Backdrop Overlay ────────────────────────────────────────────────────── */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-        onClick={closeCompose}
-      />
-
-      {/* ── Success Toast Notification ────────────────────────────────────────── */}
-      {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 glass bg-emerald-500/10 border-emerald-500/20 text-emerald-400 px-5 py-3 rounded-2xl flex items-center gap-3 shadow-xl animate-slideIn">
-          <CheckCircle size={18} />
-          <span className="text-xs font-semibold">{toastMessage}</span>
-        </div>
-      )}
-
-      {/* ── Main Compose Card Container ────────────────────────────────────────── */}
-      <div className="relative w-full max-w-[640px] glass rounded-3xl border border-white/5 shadow-2xl flex flex-col max-h-[90vh] z-10 overflow-hidden bg-bg-base/95 backdrop-blur-3xl animate-scaleUp">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <Mail size={16} className="text-indigo-400" />
-            <h2 className="text-sm font-bold text-white tracking-wide uppercase">
-              Compose Outbound Action
-            </h2>
-          </div>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0"
+            style={{ backgroundColor: 'rgba(17,17,17,0.65)' }}
             onClick={closeCompose}
-            className="p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          />
+
+          {/* Success Toast */}
+          {toastMessage && (
+            <div
+              className="fixed top-6 right-6 z-50 px-5 py-3 flex items-center gap-3 animate-slideIn rounded-[14px]"
+              style={{
+                backgroundColor: 'var(--color-success)',
+                boxShadow: '0 8px 28px rgba(63,167,106,.30)',
+                color: '#fff',
+              }}
+            >
+              <CheckCircle size={16} />
+              <span className="text-[13px] font-medium">{toastMessage}</span>
+            </div>
+          )}
+
+          {/* Main Compose Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+            className="relative w-full max-w-[640px] flex flex-col max-h-[90vh] z-10 overflow-hidden rounded-[22px]"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              boxShadow: '0 20px 60px rgba(0,0,0,.15)',
+            }}
           >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Form Body wrapper */}
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex-1 overflow-y-auto p-6 space-y-4"
-        >
-          {/* TO Field */}
-          <div className="space-y-1">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                To
-              </label>
-              {errors.to && (
-                <span className="text-[9px] text-rose-400 flex items-center gap-1 font-medium">
-                  <AlertCircle size={9} />
-                  <span>{errors.to.message}</span>
-                </span>
-              )}
-            </div>
-            <input
-              type="text"
-              placeholder="recipient@domain.com"
-              disabled={isSending}
-              {...register('to', {
-                required: 'Recipient is required',
-                pattern: {
-                  value: /\S+@\S+\.\S+/,
-                  message: 'Enter a valid email address',
-                },
-              })}
-              className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-xs text-gray-200 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-1 ${
-                errors.to
-                  ? 'border-rose-500/50 focus:ring-rose-500/10'
-                  : 'border-white/5 hover:border-white/10 focus:border-indigo-500/40 focus:ring-indigo-500/10'
-              }`}
-            />
-          </div>
-
-          {/* CC Field */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-              CC
-            </label>
-            <input
-              type="text"
-              placeholder="optional@domain.com"
-              disabled={isSending}
-              {...register('cc')}
-              className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/10 rounded-xl px-4 py-2.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none transition-all duration-200"
-            />
-          </div>
-
-          {/* SUBJECT Field */}
-          <div className="space-y-1">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Subject
-              </label>
-              {errors.subject && (
-                <span className="text-[9px] text-rose-400 flex items-center gap-1 font-medium">
-                  <AlertCircle size={9} />
-                  <span>{errors.subject.message}</span>
-                </span>
-              )}
-            </div>
-            <input
-              type="text"
-              placeholder="Subject line"
-              disabled={isSending}
-              {...register('subject', { required: 'Subject line is required' })}
-              className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-xs text-gray-200 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-1 ${
-                errors.subject
-                  ? 'border-rose-500/50 focus:ring-rose-500/10'
-                  : 'border-white/5 hover:border-white/10 focus:border-indigo-500/40 focus:ring-indigo-500/10'
-              }`}
-            />
-          </div>
-
-          {/* Editor Helper bar & Textarea BODY Field */}
-          <div className="space-y-1.5 flex-1 flex flex-col min-h-[220px]">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Message Body
-              </label>
-              {errors.body && (
-                <span className="text-[9px] text-rose-400 flex items-center gap-1 font-medium">
-                  <AlertCircle size={9} />
-                  <span>{errors.body.message}</span>
-                </span>
-              )}
-            </div>
-
-            <div className="border border-white/5 rounded-2xl overflow-hidden flex flex-col flex-1 bg-white/[0.02]">
-              {/* Text formatting bar */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-white/[0.01]">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('bold')}
-                    title="Bold"
-                    className="p-3 md:p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
-                  >
-                    <Bold size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('italic')}
-                    title="Italic"
-                    className="p-3 md:p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
-                  >
-                    <Italic size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('code')}
-                    title="Code block"
-                    className="p-3 md:p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
-                  >
-                    <Code size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('list')}
-                    title="Bullet List"
-                    className="p-3 md:p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
-                  >
-                    <List size={13} />
-                  </button>
-                </div>
-
-                {/* AI Assist helper */}
-                <button
-                  type="button"
-                  onClick={triggerAiDraft}
-                  disabled={isAiLoading || isSending}
-                  className="flex items-center gap-1 px-3 py-2 md:px-2.5 md:py-1 rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all text-[10px] font-bold border border-indigo-500/20 disabled:opacity-50 min-h-[44px] md:min-h-0"
+            {/* Modal Header */}
+            <div
+              className="flex items-center justify-between px-6 py-4"
+              style={{
+                borderBottom: '1px solid var(--color-border)',
+                backgroundColor: 'rgba(93,107,47,.04)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Mail size={15} style={{ color: 'var(--color-primary)' }} />
+                <h2
+                  className="text-[15px] font-semibold"
+                  style={{ color: 'var(--color-ink)' }}
                 >
-                  {isAiLoading ? (
-                    <>
-                      <Loader2 size={10} className="animate-spin" />
-                      <span>Drafting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={10} />
-                      <span>AI Draft Assist</span>
-                    </>
+                  Compose Message
+                </h2>
+              </div>
+              <button
+                onClick={closeCompose}
+                className="p-1.5 flex items-center justify-center transition-all min-h-[36px] min-w-[36px] rounded-lg border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-danger)] hover:bg-[#FEF0EE] hover:border-[var(--color-danger)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/30"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="flex-1 overflow-y-auto p-6 space-y-6"
+            >
+              {/* TO Field */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center mb-1">
+                  <label
+                    className="text-[11px] font-medium"
+                    style={{ color: 'var(--color-muted)' }}
+                  >
+                    To
+                  </label>
+                  {errors.to && (
+                    <span
+                      className="text-[9px] flex items-center gap-1 font-bold"
+                      style={{ color: 'var(--color-danger)' }}
+                    >
+                      <AlertCircle size={9} />
+                      <span>{errors.to.message}</span>
+                    </span>
                   )}
-                </button>
+                </div>
+                <input
+                  type="text"
+                  placeholder="recipient@domain.com"
+                  disabled={isSending}
+                  {...register('to', {
+                    required: 'Recipient is required',
+                    pattern: {
+                      value: /\S+@\S+\.\S+/,
+                      message: 'Enter a valid email address',
+                    },
+                  })}
+                  className={`w-full bg-[var(--color-surface)] border rounded-[10px] px-4 py-2.5 text-xs text-[var(--color-ink)] transition-all outline-none ${
+                    errors.to
+                      ? 'border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-2 focus:ring-[var(--color-danger)]/25'
+                      : 'border-[var(--color-border)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+                  }`}
+                />
               </div>
 
-              {/* Input Textarea */}
-              <textarea
-                id="compose-body"
-                placeholder="Write your email here... Use formatting bar above to write markdown."
-                disabled={isSending}
-                {...register('body', { required: 'Message body is required' })}
-                className="w-full flex-1 min-h-[160px] bg-transparent resize-none p-4 text-xs text-gray-200 placeholder-gray-500 focus:outline-none leading-relaxed"
-              />
-            </div>
-          </div>
+              {/* CC Field */}
+              <div className="space-y-1">
+                <label
+                  className="text-[11px] font-medium block mb-1"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  CC
+                </label>
+                <input
+                  type="text"
+                  placeholder="optional@domain.com"
+                  disabled={isSending}
+                  {...register('cc')}
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[10px] px-4 py-2.5 text-xs text-[var(--color-ink)] transition-all outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                />
+              </div>
 
-          {/* Form Submit Footer */}
-          <div className="flex justify-end gap-3 pt-3 border-t border-white/5">
-            <Button
-              variant="secondary"
-              onClick={closeCompose}
-              disabled={isSending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" isLoading={isSending}>
-              {isSending ? (
-                <span>Dispatched...</span>
-              ) : (
-                <>
-                  <Send size={13} />
-                  <span>Send Action</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+              {/* SUBJECT Field */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center mb-1">
+                  <label
+                    className="text-[11px] font-medium"
+                    style={{ color: 'var(--color-muted)' }}
+                  >
+                    Subject
+                  </label>
+                  {errors.subject && (
+                    <span
+                      className="text-[9px] flex items-center gap-1 font-bold"
+                      style={{ color: 'var(--color-danger)' }}
+                    >
+                      <AlertCircle size={9} />
+                      <span>{errors.subject.message}</span>
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Subject line"
+                  disabled={isSending}
+                  {...register('subject', {
+                    required: 'Subject line is required',
+                  })}
+                  className={`w-full bg-[var(--color-surface)] border rounded-[10px] px-4 py-2.5 text-xs text-[var(--color-ink)] transition-all outline-none ${
+                    errors.subject
+                      ? 'border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-2 focus:ring-[var(--color-danger)]/25'
+                      : 'border-[var(--color-border)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+                  }`}
+                />
+              </div>
+
+              {/* BODY Field */}
+              <div className="space-y-1 flex-1 flex flex-col min-h-[220px]">
+                <div className="flex justify-between items-center mb-1">
+                  <label
+                    className="text-[11px] font-medium"
+                    style={{ color: 'var(--color-muted)' }}
+                  >
+                    Message Body
+                  </label>
+                  {errors.body && (
+                    <span
+                      className="text-[9px] flex items-center gap-1 font-bold"
+                      style={{ color: 'var(--color-danger)' }}
+                    >
+                      <AlertCircle size={9} />
+                      <span>{errors.body.message}</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col flex-1 overflow-hidden rounded-[12px] border border-[var(--color-border)] focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20 transition-all">
+                  {/* Text formatting bar */}
+                  <div
+                    className="flex items-center justify-between px-2 py-1.5"
+                    style={{
+                      borderBottom: '1px solid var(--color-border)',
+                      backgroundColor: 'rgba(93,107,47,.03)',
+                    }}
+                  >
+                    <div className="flex items-center gap-0.5">
+                      {[
+                        {
+                          symbol: 'bold',
+                          icon: <Bold size={12} />,
+                          title: 'Bold',
+                        },
+                        {
+                          symbol: 'italic',
+                          icon: <Italic size={12} />,
+                          title: 'Italic',
+                        },
+                        {
+                          symbol: 'code',
+                          icon: <Code size={12} />,
+                          title: 'Code',
+                        },
+                        {
+                          symbol: 'list',
+                          icon: <List size={12} />,
+                          title: 'List',
+                        },
+                      ].map(({ symbol, icon, title }) => (
+                        <button
+                          key={symbol}
+                          type="button"
+                          onClick={() => insertMarkdown(symbol)}
+                          title={title}
+                          style={toolbarBtnStyle}
+                          onMouseEnter={(e) => {
+                            (
+                              e.currentTarget as HTMLElement
+                            ).style.backgroundColor = 'rgba(93,107,47,.10)';
+                            (e.currentTarget as HTMLElement).style.color =
+                              'var(--color-primary)';
+                            (e.currentTarget as HTMLElement).style.borderColor =
+                              'rgba(93,107,47,.20)';
+                          }}
+                          onMouseLeave={(e) => {
+                            (
+                              e.currentTarget as HTMLElement
+                            ).style.backgroundColor = 'transparent';
+                            (e.currentTarget as HTMLElement).style.color =
+                              'var(--color-muted)';
+                            (e.currentTarget as HTMLElement).style.borderColor =
+                              'transparent';
+                          }}
+                        >
+                          {icon}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* AI Assist */}
+                    <button
+                      type="button"
+                      onClick={triggerAiDraft}
+                      disabled={isAiLoading || isSending}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-full disabled:opacity-50 transition-all border border-transparent active:scale-[0.97]"
+                      style={{
+                        backgroundColor: 'rgba(93,107,47,.10)',
+                        color: 'var(--color-primary)',
+                        border: '1px solid rgba(93,107,47,.20)',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.backgroundColor =
+                          'var(--color-primary)';
+                        (e.currentTarget as HTMLElement).style.color = '#fff';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.backgroundColor =
+                          'rgba(93,107,47,.10)';
+                        (e.currentTarget as HTMLElement).style.color =
+                          'var(--color-primary)';
+                      }}
+                    >
+                      {isAiLoading ? (
+                        <>
+                          <Loader2 size={11} className="animate-spin" />
+                          <span>Drafting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={11} />
+                          <span>AI Draft</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Textarea */}
+                  <textarea
+                    id="compose-body"
+                    placeholder="Write your email here..."
+                    disabled={isSending}
+                    {...register('body', {
+                      required: 'Message body is required',
+                    })}
+                    className="w-full flex-1 min-h-[160px] resize-none p-4 text-[13px] leading-relaxed bg-[var(--color-surface)] text-[var(--color-ink)] outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Form Submit Footer */}
+              <div
+                className="flex justify-end gap-3 pt-4"
+                style={{ borderTop: '1px solid var(--color-border)' }}
+              >
+                <Button
+                  variant="secondary"
+                  onClick={closeCompose}
+                  disabled={isSending}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" isLoading={isSending}>
+                  {isSending ? (
+                    <span>Dispatching...</span>
+                  ) : (
+                    <>
+                      <Send size={13} />
+                      <span>Send Action</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };

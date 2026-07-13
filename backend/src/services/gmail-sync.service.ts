@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { PrismaClient } from '@prisma/client';
 import { decrypt, encrypt } from '../utils/crypto';
 import { LinkAttachmentExtractorService } from './parser/link-attachment-extractor.service';
+import { EventBus } from './event-bus.service';
 
 const prisma = new PrismaClient();
 
@@ -23,11 +24,13 @@ export class GmailSyncService {
 
     // 2. Decrypt tokens and set up OAuth client
     const tokens = JSON.parse(decrypt(account.encryptedTokens));
+    const redirectUri = process.env.GMAIL_REDIRECT_URI || 
+      (process.env.RENDER_EXTERNAL_URL ? `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/api/integrations/gmail/callback` : 'http://localhost:8000/api/integrations/gmail/callback');
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GMAIL_CLIENT_ID,
       process.env.GMAIL_CLIENT_SECRET,
-      process.env.GMAIL_REDIRECT_URI ||
-        'http://localhost:8000/api/integrations/gmail/callback'
+      redirectUri
     );
     oauth2Client.setCredentials(tokens);
 
@@ -131,7 +134,7 @@ export class GmailSyncService {
 
       // Save to DB
       const links = await LinkAttachmentExtractorService.extractLinks(bodyData);
-      await prisma.email.create({
+      const emailRecord = await prisma.email.create({
         data: {
           messageId: msg.id,
           inReplyTo,
@@ -147,6 +150,7 @@ export class GmailSyncService {
         },
       });
       syncedCount++;
+      await EventBus.publish('email.received', { emailId: emailRecord.id });
     }
 
     // Store the ID of the most recent message to avoid duplicates on the next run

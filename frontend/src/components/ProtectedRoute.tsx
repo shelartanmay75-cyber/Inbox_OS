@@ -12,19 +12,31 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-bg-base flex flex-col justify-center items-center select-none relative overflow-hidden">
-        {/* ambient background light */}
-        <div className="absolute top-[25%] left-[25%] w-[50vw] h-[50vw] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
-
-        {/* glass loader container */}
-        <div className="glass rounded-3xl p-8 flex flex-col items-center gap-4 border border-white/5 backdrop-blur-2xl shadow-xl max-w-[280px] w-full text-center">
-          <Loader2 size={36} className="text-accent animate-spin" />
+      <div
+        className="min-h-screen flex flex-col justify-center items-center select-none"
+        style={{ backgroundColor: 'var(--color-bg)' }}
+      >
+        <div className="neu-card p-8 flex flex-col items-center gap-4 max-w-[280px] w-full text-center">
+          <Loader2
+            size={36}
+            className="animate-spin"
+            style={{ color: 'var(--color-ink)' }}
+          />
           <div>
-            <p className="text-sm font-semibold text-white">
-              Initializing InboxOS
+            <p
+              className="text-sm font-black uppercase tracking-wider"
+              style={{
+                fontFamily: 'var(--font-display)',
+                color: 'var(--color-ink)',
+              }}
+            >
+              Initializing OS
             </p>
-            <p className="text-[10px] text-gray-500 mt-1">
-              Securing connection channel...
+            <p
+              className="text-[10px] mt-1 font-bold"
+              style={{ color: '#666', fontFamily: 'var(--font-body)' }}
+            >
+              Securing connection...
             </p>
           </div>
         </div>
