@@ -1,6 +1,10 @@
-# 📬 InboxOS — The AI Inbox Operating System
+<p align="center">
+  <img src="logo.svg" alt="INBOXOS - The Inbox Operating System" width="380" />
+</p>
 
-**Not an email client. A decision + execution layer that reads your inbox, understands what matters, and acts on it automatically.**
+<p align="center">
+  <strong>Not an email client. A decision + execution layer that reads your inbox, understands what matters, and acts on it automatically.</strong>
+</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />

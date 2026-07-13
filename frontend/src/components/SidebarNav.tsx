@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Inbox, Settings, Plus, X, Sparkles } from 'lucide-react';
+import { Inbox, Settings, Plus, X } from 'lucide-react';
 import { useCompose } from '../context/ComposeContext';
+import { Logo } from './Logo';
 
 export interface SidebarNavProps {
   onCloseMobileMenu?: () => void;
@@ -75,19 +76,15 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         className={`flex items-center justify-between ${isMobile ? 'pb-4 mb-2' : 'px-5 py-5'}`}
       >
         <div className="flex items-center gap-2.5">
-          {/* Logo mark: olive rounded */}
-          <div
-            className="flex items-center justify-center w-8 h-8 rounded-[10px] shrink-0"
-            style={{ backgroundColor: 'var(--color-primary)' }}
-          >
-            <Sparkles size={15} className="text-white" fill="white" />
-          </div>
+          {/* Logo mark */}
+          <Logo iconOnly size={32} className="shrink-0" />
           <div className="text-left">
             <h1
-              className="text-[15px] leading-none font-bold tracking-tight dark:text-zinc-100"
+              className="text-[17px] leading-none font-bold tracking-tight dark:text-zinc-100"
               style={{
-                fontFamily: 'var(--font-display)',
+                fontFamily: "'Oswald', sans-serif",
                 color: 'var(--color-ink)',
+                letterSpacing: '-0.3px',
               }}
             >
               InboxOS
