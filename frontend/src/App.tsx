@@ -160,7 +160,19 @@ const DashboardContent: React.FC = () => {
   // Synced backend settings fields
   const [signature, setSignature] = useState('');
   const [autoReply, setAutoReply] = useState(false);
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  // Sync theme changes dynamically to document element & localStorage
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark-theme');
+      document.documentElement.classList.remove('light-theme');
+    } else {
+      document.documentElement.classList.add('light-theme');
+      document.documentElement.classList.remove('dark-theme');
+    }
+  }, [theme]);
 
   // Load preferences from backend settings API
   useEffect(() => {
@@ -905,6 +917,17 @@ const DashboardContent: React.FC = () => {
 };
 
 export default function App() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark-theme');
+      document.documentElement.classList.remove('light-theme');
+    } else {
+      document.documentElement.classList.add('light-theme');
+      document.documentElement.classList.remove('dark-theme');
+    }
+  }, []);
+
   return (
     <>
       <Routes>

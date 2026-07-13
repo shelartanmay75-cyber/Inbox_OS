@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        'bg-base': '#080b14',
-        'bg-elevated': '#111827',
-        'accent': 'var(--accent)',
+        'bg-base': 'var(--bg-base, #080b14)',
+        'bg-elevated': 'var(--bg-elevated, #111827)',
+        'accent': 'var(--accent, #6366f1)',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

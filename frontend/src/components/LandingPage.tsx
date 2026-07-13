@@ -1328,7 +1328,7 @@ export const LandingPage: React.FC = () => {
                 href="https://github.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-3 rounded-xl bg-slate-955 text-white font-semibold text-xs transition-all hover:bg-slate-800 flex items-center justify-center gap-2"
+                className="px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold text-xs transition-all hover:bg-slate-800 flex items-center justify-center gap-2"
               >
                 <GithubIcon size={14} />
                 <span>Explore GitHub Repository</span>
@@ -1627,7 +1627,7 @@ export const LandingPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => navigate('/login')}
-                className="w-full sm:w-auto px-6 py-3.5 text-xs font-semibold text-indigo-955 bg-white hover:bg-slate-100 rounded-2xl transition-all shadow-lg active:scale-98"
+                className="w-full sm:w-auto px-6 py-3.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-2xl transition-all shadow-lg active:scale-98"
               >
                 Get Started Free
               </button>
