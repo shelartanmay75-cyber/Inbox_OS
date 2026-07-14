@@ -1,0 +1,13 @@
+{
+  "messages": [
+    {
+      "id": "mock-message-id-1",
+      "threadId": "mock-thread-id-1"
+    },
+    {
+      "id": "mock-message-id-2",
+      "threadId": "mock-thread-id-2"
+    }
+  ],
+  "resultSizeEstimate": 2
+}

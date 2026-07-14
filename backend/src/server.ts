@@ -4,6 +4,8 @@ import * as path from 'path';
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+import { IS_MOCK } from './config/environment';
+import { gmailClient } from './services/gmail/gmail-client';
 import './utils/redis-patch';
 import express, { Request, Response } from 'express';
 import cookieParser from 'cookie-parser';
@@ -1212,8 +1214,7 @@ app.put(
   }
 );
 
-// OAuth2 & Encryption config
-const getOAuth2Client = (req?: Request) => {
+const getRedirectUri = (req?: Request) => {
   let redirectUri = process.env.GMAIL_REDIRECT_URI;
   if (!redirectUri && req) {
     const protocol =
@@ -1226,10 +1227,15 @@ const getOAuth2Client = (req?: Request) => {
       ? `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/api/integrations/gmail/callback`
       : 'http://localhost:8000/api/integrations/gmail/callback';
   }
+  return redirectUri;
+};
+
+// OAuth2 & Encryption config
+const getOAuth2Client = (req?: Request) => {
   return new google.auth.OAuth2(
     process.env.GMAIL_CLIENT_ID,
     process.env.GMAIL_CLIENT_SECRET,
-    redirectUri
+    getRedirectUri(req)
   );
 };
 
@@ -1267,6 +1273,11 @@ app.get(
   '/api/integrations/gmail/auth',
   requireAuth,
   (req: AuthenticatedRequest, res: Response) => {
+    if (IS_MOCK) {
+      const callbackUrl =
+        getRedirectUri(req) + `?code=mock-auth-code&state=${req.user?.userId}`;
+      return res.json({ url: callbackUrl });
+    }
     const client = getOAuth2Client(req);
     const url = client.generateAuthUrl({
       access_type: 'offline',
@@ -1332,13 +1343,10 @@ app.get(
     }
 
     try {
-      const client = getOAuth2Client(req);
-      const { tokens } = await client.getToken(code);
-      client.setCredentials(tokens);
-
-      const gmail = google.gmail({ version: 'v1', auth: client });
-      const profile = await gmail.users.getProfile({ userId: 'me' });
-      const emailAddress = profile.data.emailAddress;
+      const redirectUri = getRedirectUri(req);
+      const tokens = await gmailClient.getToken(code, redirectUri);
+      const profile = await gmailClient.getProfile(tokens, redirectUri);
+      const emailAddress = profile.emailAddress;
 
       if (!emailAddress) {
         return res
@@ -1513,34 +1521,25 @@ app.post(
         });
       }
 
-      // Build authenticated Gmail client with stored tokens
-      const userOAuth = new google.auth.OAuth2(
-        process.env.GMAIL_CLIENT_ID,
-        process.env.GMAIL_CLIENT_SECRET,
-        process.env.GMAIL_REDIRECT_URI
-      );
-      userOAuth.setCredentials(tokens);
-
-      // Auto-refresh token if expired
-      userOAuth.on('tokens', async (newTokens) => {
+      const redirectUri = process.env.GMAIL_REDIRECT_URI || '';
+      const onTokensRefreshed = async (newTokens: any) => {
         const merged = { ...tokens, ...newTokens };
         const encrypted = encrypt(JSON.stringify(merged));
         await prisma.emailAccount.update({
           where: { id: account.id },
           data: { encryptedTokens: encrypted },
         });
-      });
-
-      const gmail = google.gmail({ version: 'v1', auth: userOAuth });
+      };
 
       // Fetch list of latest 50 messages
-      const listRes = await gmail.users.messages.list({
-        userId: 'me',
-        maxResults: 50,
-        q: 'in:inbox',
-      });
+      const listRes = await gmailClient.listMessages(
+        tokens,
+        redirectUri,
+        { maxResults: 50, q: 'in:inbox' },
+        onTokensRefreshed
+      );
 
-      const messages = listRes.data.messages || [];
+      const messages = listRes.messages || [];
       if (messages.length === 0) {
         await prisma.emailAccount.update({
           where: { id: account.id },
@@ -1561,16 +1560,18 @@ app.post(
         if (existing) continue;
 
         try {
-          const fullMsg = await gmail.users.messages.get({
-            userId: 'me',
-            id: msg.id,
-            format: 'full',
-          });
+          const fullMsg = await gmailClient.getMessage(
+            tokens,
+            redirectUri,
+            msg.id,
+            onTokensRefreshed
+          );
 
           const headers = fullMsg.data.payload?.headers || [];
           const getHeader = (name: string) =>
-            headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())
-              ?.value || '';
+            headers.find(
+              (h: any) => h.name?.toLowerCase() === name.toLowerCase()
+            )?.value || '';
 
           const subject = getHeader('Subject') || '(no subject)';
           const from = getHeader('From') || 'unknown@unknown.com';

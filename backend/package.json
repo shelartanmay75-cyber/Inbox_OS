@@ -25,7 +25,8 @@
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "node --max-old-space-size=4096 ../node_modules/jest/bin/jest.js --runInBand",
-    "test:coverage": "node --max-old-space-size=4096 ../node_modules/jest/bin/jest.js --coverage --runInBand"
+    "test:coverage": "node --max-old-space-size=4096 ../node_modules/jest/bin/jest.js --coverage --runInBand",
+    "validate": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",

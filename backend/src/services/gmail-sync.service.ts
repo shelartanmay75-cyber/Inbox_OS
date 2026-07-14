@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { gmailClient } from './gmail/gmail-client';
 import { PrismaClient } from '@prisma/client';
 import { decrypt, encrypt } from '../utils/crypto';
 import { LinkAttachmentExtractorService } from './parser/link-attachment-extractor.service';
@@ -30,15 +30,7 @@ export class GmailSyncService {
         ? `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/api/integrations/gmail/callback`
         : 'http://localhost:8000/api/integrations/gmail/callback');
 
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GMAIL_CLIENT_ID,
-      process.env.GMAIL_CLIENT_SECRET,
-      redirectUri
-    );
-    oauth2Client.setCredentials(tokens);
-
-    // Auto token refresh listener
-    oauth2Client.on('tokens', async (newTokens) => {
+    const onTokensRefreshed = async (newTokens: any) => {
       if (newTokens.refresh_token || newTokens.access_token) {
         const updatedTokens = { ...tokens, ...newTokens };
         const reEncrypted = encrypt(JSON.stringify(updatedTokens));
@@ -47,17 +39,17 @@ export class GmailSyncService {
           data: { encryptedTokens: reEncrypted },
         });
       }
-    });
-
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    };
 
     // 3. Fetch latest 50 message IDs
-    const listRes = await gmail.users.messages.list({
-      userId: 'me',
-      maxResults: 50,
-    });
+    const listRes = await gmailClient.listMessages(
+      tokens,
+      redirectUri,
+      { maxResults: 50 },
+      onTokensRefreshed
+    );
 
-    const messages = listRes.data.messages || [];
+    const messages = listRes.messages || [];
     let syncedCount = 0;
 
     for (const msg of messages) {
@@ -75,32 +67,35 @@ export class GmailSyncService {
       if (existing) continue;
 
       // 4. Fetch full payload
-      const msgData = await gmail.users.messages.get({
-        userId: 'me',
-        id: msg.id,
-        format: 'full',
-      });
+      const msgData = await gmailClient.getMessage(
+        tokens,
+        redirectUri,
+        msg.id,
+        onTokensRefreshed
+      );
 
       const payload = msgData.data.payload;
       const headers = payload?.headers || [];
 
       const subject =
-        headers.find((h) => h.name?.toLowerCase() === 'subject')?.value ||
+        headers.find((h: any) => h.name?.toLowerCase() === 'subject')?.value ||
         'No Subject';
       const sender =
-        headers.find((h) => h.name?.toLowerCase() === 'from')?.value ||
+        headers.find((h: any) => h.name?.toLowerCase() === 'from')?.value ||
         'Unknown Sender';
       const recipient =
-        headers.find((h) => h.name?.toLowerCase() === 'to')?.value ||
+        headers.find((h: any) => h.name?.toLowerCase() === 'to')?.value ||
         account.emailAddress;
       const inReplyTo =
-        headers.find((h) => h.name?.toLowerCase() === 'in-reply-to')?.value ||
-        null;
+        headers.find((h: any) => h.name?.toLowerCase() === 'in-reply-to')
+          ?.value || null;
 
       // Decode base64url body
       let bodyData = '';
       if (payload?.parts && payload.parts.length > 0) {
-        const textPart = payload.parts.find((p) => p.mimeType === 'text/plain');
+        const textPart = payload.parts.find(
+          (p: any) => p.mimeType === 'text/plain'
+        );
         if (textPart && textPart.body?.data) {
           bodyData = Buffer.from(textPart.body.data, 'base64url').toString(
             'utf-8'
