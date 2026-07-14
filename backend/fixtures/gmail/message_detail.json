@@ -1,0 +1,28 @@
+{
+  "id": "mock-message-id-1",
+  "threadId": "mock-thread-id-1",
+  "payload": {
+    "headers": [
+      { "name": "Subject", "value": "Welcome to local InboxOS development!" },
+      { "name": "From", "value": "InboxOS Team <team@inboxos.dev>" },
+      { "name": "To", "value": "mock-contributor@inboxos.dev" }
+    ],
+    "mimeType": "multipart/mixed",
+    "parts": [
+      {
+        "mimeType": "text/plain",
+        "body": {
+          "data": "SGVsbG8hIFRoaXMgaXMgYSBtb2NrIGVtYWlsIGJvZHkgZm9yIGxvY2FsIGRldmVsb3BtZW50LiBJZiB5b3UncmUgc2VlaW5nIHRoaXMsIG1vY2sgR21haWwgbW9kZSBpcyB3b3JraW5nIHBlcmZlY3RseSEgQ2hlY2sgb3V0IGh0dHBzOi8vZ2l0aHViLmNvbS9Db2RlTGFic0FJMjkvSW5ib3hfT1MgdG8gY29udHJpYnV0ZS4="
+        }
+      },
+      {
+        "mimeType": "application/pdf",
+        "filename": "contributors_guide.pdf",
+        "body": {
+          "attachmentId": "mock-attachment-id-12345",
+          "size": 512
+        }
+      }
+    ]
+  }
+}

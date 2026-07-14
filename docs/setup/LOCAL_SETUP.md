@@ -8,21 +8,12 @@ Welcome to the local development setup guide for **InboxOS**—a decision + exec
 
 Before you start, ensure you have the following installed on your local machine:
 
-1. **Node.js (v18.0.0 or higher)**
+1. **Node.js (v24.0.0 or higher)**
    - Used for the frontend client and the primary backend server.
    - [Download Node.js](https://nodejs.org/)
-2. **PostgreSQL (v15.0 or higher)**
-   - Used as the persistent database layer.
-   - [Download PostgreSQL](https://www.postgresql.org/download/)
-3. **Docker & Docker Compose (v2.0 or higher)**
+2. **Docker & Docker Compose (v2.0 or higher)**
    - Highly recommended for spinning up PostgreSQL, Redis, and other services with a single command.
    - [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)
-4. **Python (v3.11 or higher)** *(Optional / API dependent)*
-   - Required if you are running the FastAPI Python API server manually.
-   - [Download Python](https://www.python.org/downloads/)
-5. **Redis (v7.0 or higher)** *(Optional)*
-   - Used for caching and asynchronous Celery tasks. Required if running the backend manually without Docker.
-   - [Download Redis](https://redis.io/download/)
 
 ---
 
@@ -32,98 +23,70 @@ Before you start, ensure you have the following installed on your local machine:
 Clone the repository and navigate into the project directory:
 
 ```bash
-git clone https://github.com/inboxos/inboxos.git
-cd inboxos
+git clone https://github.com/CodeLabsAI29/Inbox_OS.git
+cd Inbox_OS
 ```
 
 ---
 
 ### Step 2: Configure Environment Variables
-InboxOS reads configurations from environment variable files. You need to copy the template `.env.example` file and configure it:
+InboxOS reads configurations from the `backend/.env` file. You need to copy the template `.env.example` file:
 
 ```bash
-# Copy the example environment file to the active configuration location
-cp infrastructure/config/env/.env.example infrastructure/config/env/.env
+cd backend
+cp .env.example .env
 ```
 
-Now, open the newly created [infrastructure/config/env/.env](../../infrastructure/config/env/.env) file in your editor and adjust the settings:
+Now, open the newly created [backend/.env](../../backend/.env) file in your editor and adjust the settings.
 
 #### 🔑 Key Environment Variables Explained
 
-Refer to [infrastructure/config/env/.env.example](../../infrastructure/config/env/.env.example) for reference:
+Refer to [backend/.env.example](../../backend/.env.example) for reference:
 
 | Key | Description | Default / Example Value |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | Database connection string. If you are using PostgreSQL, configure it with your credentials. | `sqlite:///./inboxos.db` |
-| `REDIS_URL` | Redis URL for message broker and cache storage. | `redis://localhost:6379/0` |
-| `AI_PROVIDER` | Selected intelligence engine (`openai`, `gemini`, `ollama`, or `mock`). | `mock` |
-| `OPENAI_API_KEY` | Your API key if `AI_PROVIDER` is set to `openai`. | `sk-proj-...` |
-| `GEMINI_API_KEY` | Your API key if `AI_PROVIDER` is set to `gemini`. | `AIzaSy...` |
-| `OLLAMA_BASE_URL` | The endpoint of your local Ollama server if `AI_PROVIDER` is `ollama`. | `http://localhost:11434` |
-| `JWT_SECRET` | Cryptographic secret for signing API tokens. Change this to a random 32-char string. | `change-this-to-a-random-32-char-string-in-production` |
-| `TELEGRAM_BOT_TOKEN` | Token for the Telegram Bot API credentials. | `123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ` |
-| `TELEGRAM_WEBHOOK_SECRET` | Secret token to authenticate incoming requests from Telegram API. | `my-secure-webhook-secret-token` |
-| `TELEGRAM_WEBHOOK_URL` | Public base URL of your API backend server to register webhooks (leave empty for background long-polling fallback). | `https://api.yourdomain.com` |
-| `TELEGRAM_ALLOWED_CHAT_IDS` | Comma-separated whitelist list of Telegram chat IDs authorized to interact with the bot (leave empty to allow all). | `12345678,98765432` |
-
-> [!NOTE]
-> For a step-by-step walkthrough on how to set up your own Telegram Bot for local development, refer to [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md).
+| `ENVIRONMENT` | Env tier mode (`local` \| `staging` \| `production`). | `local` |
+| `MOCK_GMAIL` | Set to `true` to enable mock Gmail integrations. Requires `ENVIRONMENT=local` to boot. | `true` |
+| `DATABASE_URL` | PostgreSQL connection string. Defaults to local compose container. | `postgresql://postgres:postgres@localhost:5432/inboxos?schema=public` |
+| `REDIS_URL` | Redis URL for background BullMQ jobs. Defaults to local compose container. | `redis://localhost:6379/0` |
+| `AI_PROVIDER` | Selected intelligence engine (`openai` \| `gemini` \| `ollama` \| `mock`). | `mock` |
+| `JWT_SECRET` | Cryptographic secret for signing API tokens. | `replace_with_random_64_char_hex_string` |
 
 ---
 
-### Step 3: Database Migrations
-Prisma ORM is used by the Node.js backend. You must initialize your database schema before starting the application:
+### Step 3: Run Infrastructure Container
+Spin up your local PostgreSQL and Redis databases using Docker Compose in the root folder:
 
 ```bash
-# Navigate to the backend folder
-cd backend
-
-# Install the package dependencies
-npm install
-
-# Run database migrations to construct the database schema
-npx prisma migrate dev
-```
-> [!NOTE]
-> The schema is defined in [schema.prisma](../../backend/prisma/schema.prisma) and targets a PostgreSQL database. Ensure your connection URL is set correctly in your environment variables before running migrations.
-
----
-
-### Step 4: Run the Application
-
-You can start the InboxOS stack using Docker Compose (Recommended) or run the individual services manually.
-
-#### Option A: Docker Compose Setup (Recommended)
-This runs all microservices (Postgres, Redis, API Backend, Celery, and Frontend) in containerized environments:
-
-```bash
-# Spin up all services using the compose file in infrastructure/docker/
-docker compose -f infrastructure/docker/docker-compose.yml up -d
-```
-
-To stop the containers:
-```bash
-docker compose -f infrastructure/docker/docker-compose.yml down
+# In the root repository directory:
+docker compose up -d
 ```
 
 ---
 
-#### Option B: Manual Setup (Local Debugging)
-Run this if you want to run the processes natively on your machine:
+### Step 4: Run Database Migrations
+Run Prisma migrations to instantiate the database schema:
 
-##### 1. Start the Node.js Backend Server
-In your first terminal window:
 ```bash
 cd backend
-npm install
-npm start
+npx prisma db push
 ```
 
-##### 2. Start the Vite/React Frontend Client
+---
+
+### Step 5: Start the Servers
+
+#### 1. Start the Node.js Backend Server
+In your backend terminal window:
+```bash
+cd backend
+npm run dev
+```
+
+#### 2. Start the React Frontend Client
 In a new terminal window:
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
@@ -132,11 +95,22 @@ npm run dev
 ## 🎯 Verification
 
 Once all services are running, verify they are working by accessing these URLs:
-
-### For Docker Compose Setup (Recommended)
-- **Frontend Application Dashboard:** [http://localhost](http://localhost)
-- **Node.js Backend Server:** [http://localhost:8000](http://localhost:8000) (Metrics: [http://localhost:8000/metrics](http://localhost:8000/metrics))
-
-### For Manual Setup (Local Debugging)
 - **Frontend Application Dashboard:** [http://localhost:5173](http://localhost:5173)
-- **Node.js Backend Server (if running):** [http://localhost:8000](http://localhost:8000) (Metrics: [http://localhost:8000/metrics](http://localhost:8000/metrics))
+- **Node.js Backend Server:** [http://localhost:8000](http://localhost:8000)
+
+---
+
+## 🔒 Security & Environment Safeguards
+
+1. **Local Infra Guardrail**: The backend will refuse to boot in `local` mode if your `DATABASE_URL` or `REDIS_URL` contains known production hostnames (e.g. `supabase`, `upstash`, `render`).
+2. **Mock Mode Protection**: Mock Gmail mode only activates if BOTH `ENVIRONMENT=local` and `MOCK_GMAIL=true` are configured. It will fail loudly at boot on other environments to prevent leakage of mock data.
+3. **Commit Protections**: Pre-commit hooks are configured to prevent staging production credentials, secrets, or hostnames. Always review your staged changes before pushing.
+
+---
+
+## 📧 Testing Real Gmail OAuth
+
+Mock mode covers 95%+ of typical contributions. If you specifically need to test real Gmail syncing or OAuth callback handlers:
+1. Open an issue tagged `needs-real-oauth`.
+2. A project maintainer will add your Google Account email as an authorized tester on the Google Cloud Console OAuth consent screen.
+3. Replace the mock credentials in your local `.env` with the active project client credentials and run the OAuth flows with your own account.

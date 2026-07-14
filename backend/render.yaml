@@ -18,6 +18,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: ENVIRONMENT
+        value: production
       - key: PORT
         value: "8000"
 

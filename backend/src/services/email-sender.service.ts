@@ -1,7 +1,7 @@
 import * as nodemailer from 'nodemailer';
 import { PrismaClient } from '@prisma/client';
 import { decrypt, encrypt } from '../utils/crypto';
-import { google } from 'googleapis';
+import { gmailClient } from './gmail/gmail-client';
 import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
@@ -151,15 +151,7 @@ export class EmailSenderService {
           ? `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/api/integrations/gmail/callback`
           : 'http://localhost:8000/api/integrations/gmail/callback');
 
-      const oauth2Client = new google.auth.OAuth2(
-        process.env.GMAIL_CLIENT_ID,
-        process.env.GMAIL_CLIENT_SECRET,
-        redirectUri
-      );
-      oauth2Client.setCredentials(tokens);
-
-      // Auto token refresh listener to save updated credentials
-      oauth2Client.on('tokens', async (newTokens) => {
+      const onTokensRefreshed = async (newTokens: any) => {
         if (newTokens.refresh_token || newTokens.access_token) {
           const updatedTokens = { ...tokens, ...newTokens };
           const reEncrypted = encrypt(JSON.stringify(updatedTokens));
@@ -168,7 +160,7 @@ export class EmailSenderService {
             data: { encryptedTokens: reEncrypted },
           });
         }
-      });
+      };
 
       const mailOptions = {
         from: account.emailAddress,
@@ -204,14 +196,14 @@ export class EmailSenderService {
         });
       }
 
-      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-
       let res: any;
       try {
-        res = await gmail.users.messages.send({
-          userId: 'me',
-          requestBody: { raw: rawMime },
-        });
+        res = await gmailClient.sendMessage(
+          tokens,
+          redirectUri,
+          rawMime,
+          onTokensRefreshed
+        );
       } catch (gmailErr: any) {
         // Classify OAuth errors into GmailAuthError; others bubble as-is
         const isAuthError =

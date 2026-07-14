@@ -17,6 +17,8 @@ import * as path from 'path';
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+import './config/environment';
+
 const prisma = new PrismaClient();
 
 // Wire BullMQ worker events for logging

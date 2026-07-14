@@ -1,0 +1,7 @@
+{
+  "sender": "alerts@inboxos.dev",
+  "recipient": "mock-contributor@inboxos.dev",
+  "subject": "Mock Webhook Ingestion Event",
+  "body": "This is a mock push notification email webhook payload designed to test local webhook ingestion pipelines.",
+  "messageId": "mock-webhook-message-id-999"
+}
